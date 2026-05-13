@@ -111,8 +111,8 @@ template <typename T> class BPT {
 public:
   int head;
   int root;
-  bool find(const int &pos, const index_value &target, int &out_node,
-            int &offset, int *vec, int &num) {
+  bool findinterval(const int &pos, const index_value &target, int &offset,
+                    int *vec, int &num) {
     Node cur_node;
     tree_node.read(cur_node, pos);
     offset = 0;
@@ -152,16 +152,16 @@ public:
 
     // 现在还不是叶子节点
     if (strcmp(target.index, cur_node.element[1].index) < 0) {
-      return find(cur_node.child[0], target, out_node, offset, vec, num);
+      return findinterval(cur_node.child[0], target, offset, vec, num);
     }
     for (int i = 1; i < cur_node.count; i++) {
       if (strcmp(target.index, cur_node.element[i].index) >= 0 &&
           strcmp(target.index, cur_node.element[i + 1].index) < 0) {
-        return find(cur_node.child[i], target, out_node, offset, vec, num);
+        return findinterval(cur_node.child[i], target, offset, vec, num);
       }
     }
-    return find(cur_node.child[cur_node.count], target, out_node, offset, vec,
-                num);
+    return findinterval(cur_node.child[cur_node.count], target, offset, vec,
+                        num);
   }
 };
 
