@@ -99,9 +99,11 @@ template <typename T> class BPT {
   };
   struct Node {
     int fa;
-    int child[ORDER + 1]; // 0-127
+    int fa_offset;
+    int child[ORDER + 5]; // 0-127
     size_t count;
-    index_value element[ORDER]; // 1-127
+    index_value element[ORDER + 5];
+    // 1-127 这里预留空间+5保证不会split之前超出限制
     bool is_leaf;
     int next;
   };
@@ -162,6 +164,70 @@ public:
     }
     return findinterval(cur_node.child[cur_node.count], target, offset, vec,
                         num);
+  }
+
+  void findpoint(const int &pos, const index_value &target, Node *out_node,
+                 int &node_num, int &offset) {
+    Node cur_node;
+    tree_node.read(cur_node, pos);
+
+    if (cur_node.is_leaf) {
+      out_node = cur_node;
+      node_num = pos;
+      if (target < cur_node.element[1]) {
+        offset = 1;
+        return;
+      }
+      for (int i = 1; i < cur_node.count; i++) {
+        if (target > cur_node.element[i] && target < cur_node.element[i + 1]) {
+          offset = i + 1;
+          return;
+        }
+      }
+      offset = cur_node.count + 1;
+      return;
+    }
+
+    if (strcmp(target.index, cur_node.element[1].index) < 0) {
+      findpoint(cur_node.child[0], target, out_node, offset);
+      return;
+    }
+    for (int i = 1; i < cur_node.count; i++) {
+      if (strcmp(target.index, cur_node.element[i].index) >= 0 &&
+          strcmp(target.index, cur_node.element[i + 1].index) < 0) {
+        findpoint(cur_node.child[i], target, out_node, offset);
+        return;
+      }
+    }
+    findpoint(cur_node.child[cur_node.count], target, out_node, offset);
+  }
+
+  void split() {}
+
+  void checkinsert(Node *cur_node, const int &node_num) {
+    if (cur_node->count <= ORDER - 1) { // 没有问题
+      tree_node.update(cur_node, node_num);
+      return;
+    }
+    split();
+  }
+
+  void insert(const index_value &target) {
+    // step1 找位置
+    Node *cur_node; // 先找到叶节点
+    int offset = 0;
+    int node_num = 0;
+    findpoint(root, target, cur_node, node_num, offset);
+
+    // step2 内存中更新
+    for (int i = cur_node->count; i >= offset; i--) {
+      cur_node->element[i + 1] = cur_node->element[i];
+    }
+    cur_node->element[offset] = target;
+    cur_node->count++;
+
+    // step3 检查是否上溢，如果没有则写入，如果有，进行相应调整
+    checkinsert(cur_node, node_num);
   }
 };
 
