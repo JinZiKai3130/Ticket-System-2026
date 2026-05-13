@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -99,13 +100,14 @@ template <typename T> class BPT {
   };
   struct Node {
     int fa;
-    int fa_offset;
     int child[ORDER + 5]; // 0-127
     size_t count;
     index_value element[ORDER + 5];
     // 1-127 这里预留空间+5保证不会split之前超出限制
     bool is_leaf;
     int next;
+
+    Node() {}
   };
 
   MemoryRiver<Node> tree_node = ("tree_node");
@@ -172,7 +174,7 @@ public:
     tree_node.read(cur_node, pos);
 
     if (cur_node.is_leaf) {
-      out_node = cur_node;
+      out_node = &cur_node;
       node_num = pos;
       if (target < cur_node.element[1]) {
         offset = 1;
@@ -202,14 +204,79 @@ public:
     findpoint(cur_node.child[cur_node.count], target, out_node, offset);
   }
 
-  void split() {}
+  void split(Node *cur_node, const int &node_num) {
+    // 如果是根节点，则申请空的节点，然后其他依旧保持一致
+    if (node_num == root) {
+      Node tmp_fa;
+      cur_node->fa = tree_node.write(tmp_fa);
+      root = cur_node->fa;
+    }
+
+    index_value min_of_child = cur_node->element[1];
+    Node father_node;
+    tree_node.read(father_node, cur_node->fa);
+
+    int father_offset;
+    if (min_of_child < father_node.element[1]) {
+      father_offset = 0;
+    } else {
+      for (int i = 1; i <= father_node.count; i++) {
+        if (father_node.element[i] <= min_of_child) {
+          father_offset = i;
+          break;
+        }
+      }
+    }
+
+    int selected_offset = ceil((double)ORDER / 2.0);
+
+    for (int i = father_node.count; i >= father_offset; i--) {
+      father_node.element[i + 1] = father_node.element[i];
+      father_node.child[i + 1] = father_node.child[i];
+    }
+    father_node.element[father_offset] = cur_node->element[selected_offset];
+    father_node.count++;
+
+    Node tmp;
+    tmp.fa = cur_node->fa;
+    for (int i = selected_offset; i <= cur_node->count; i++) {
+      tmp.child[i - selected_offset] = cur_node->child[i];
+    }
+    tmp.count = cur_node->count - selected_offset;
+    for (int i = selected_offset + 1; i <= cur_node->count; i++) {
+      tmp.child[i - selected_offset] = cur_node->child[i];
+    }
+    tmp.is_leaf = cur_node->is_leaf;
+    if (tmp.is_leaf) {
+      tmp.next = cur_node->next;
+    } else {
+      tmp.next = nullptr;
+    }
+    int new_address = tree_node.write(*tmp);
+    cur_node->next = new_address;
+    tree_node.update(cur_node, node_num);
+
+    father_node.child[father_offset] = new_address;
+    for (int i = selected_offset; i <= cur_node->count; i++) {
+      Node tmp_child;
+      tree_node.read(tmp_child, tmp.child[i]);
+      tmp_child.fa = new_address;
+      tree_node.update(tmp_child, tmp.child[i]);
+    }
+
+    cur_node->count = selected_offset - 1;
+
+    checkinsert(&father_node, cur_node->fa);
+  }
 
   void checkinsert(Node *cur_node, const int &node_num) {
     if (cur_node->count <= ORDER - 1) { // 没有问题
       tree_node.update(cur_node, node_num);
       return;
     }
-    split();
+    if (node_num == root) { // 如果是root还需要特殊处理
+    }
+    split(cur_node, node_num);
   }
 
   void insert(const index_value &target) {
