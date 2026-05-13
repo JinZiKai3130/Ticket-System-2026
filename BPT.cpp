@@ -97,6 +97,17 @@ template <typename T> class BPT {
         return value < other.value;
       }
     }
+
+    bool operator==(const index_value &other) {
+      return (strcmp(this->index, other.index) == 0 &&
+              this->value == other.value);
+    }
+
+    bool operator<=(const index_value &other) {
+      return (*this < other) || (*this == other);
+    }
+
+    bool operator!=(const index_value &other) { return !(*this == other); }
   };
   struct Node {
     int fa = 0;
@@ -104,7 +115,7 @@ template <typename T> class BPT {
     size_t count = 0;
     index_value element[ORDER + 5]{};
     // 1-127 这里预留空间+5保证不会split之前超出限制
-    bool is_leaf = 0;
+    bool is_leaf = 1;
     int next = 0;
 
     Node() {}
@@ -115,6 +126,13 @@ template <typename T> class BPT {
 public:
   int head;
   int root;
+
+  void init() {
+    Node initial;
+    int address = tree_node.write(initial);
+    root = head = address;
+  }
+
   bool findinterval(const int &pos, const index_value &target, int &offset,
                     int *vec, int &num) {
     Node cur_node;
@@ -128,13 +146,13 @@ public:
           break;
         }
       }
-      if (offset == 0) { // 有可能是下一组的第一个
-        int next_index = cur_node.next;
-        tree_node.read(cur_node, next_index);
-        if (strcmp(target.index, cur_node.element[1].index) == 0) {
-          offset = 1;
-        }
-      }
+      // if (offset == 0) { // 有可能是下一组的第一个
+      //   int next_index = cur_node.next;
+      //   tree_node.read(cur_node, next_index);
+      //   if (strcmp(target.index, cur_node.element[1].index) == 0) {
+      //     offset = 1;
+      //   }
+      // }
       if (offset != 0) { // 确实存在这个index
         for (int i = offset; i <= cur_node.count; i++) {
           // 当前element index仍然和搜索的要求一致
@@ -176,13 +194,9 @@ public:
     if (cur_node.is_leaf) {
       out_node = &cur_node;
       node_num = pos;
-      if (target < cur_node.element[1]) {
-        offset = 1;
-        return;
-      }
       for (int i = 1; i < cur_node.count; i++) {
-        if (target > cur_node.element[i] && target < cur_node.element[i + 1]) {
-          offset = i + 1;
+        if (cur_node.element[i] <= target && target < cur_node.element[i + 1]) {
+          offset = i;
           return;
         }
       }
@@ -306,6 +320,68 @@ public:
 
     // step3 检查是否上溢，如果没有则写入，如果有，进行相应调整
     checkinsert(cur_node, node_num);
+  }
+
+  void update_non_leaf_node(Node *cur_node, const int &node_num,
+                            const index_value &to_be_removed,
+                            const index_value &to_replace) {
+    int cur_node_num = node_num;
+    Node *father_node = new Node;
+    while (true) {
+      if (cur_node_num == root) { // 仅有可能是全局最小值，则不会对上方造成影响
+        break;
+      }
+
+      // 找到father，并读出来
+      tree_node.read(*father_node, cur_node->fa);
+
+      // 判断是否是当前层交换的位置
+      if (to_be_removed < father_node->element[1]) { // 不是当前层继续向上
+        cur_node_num = cur_node->fa;
+        cur_node = father_node;
+        continue;
+      } else {
+        for (int i = 1; i <= father_node->count; i++) { // 是当前层，直接交换
+          if (father_node->element[i] == to_be_removed) {
+            father_node->element[i] = to_replace;
+            break;
+          }
+        }
+        break;
+      }
+    }
+    delete father_node;
+  }
+
+  void borrow() {}
+
+  void merge() {}
+
+  void checkremove() {}
+
+  void remove(const index_value &target) {
+    Node *cur_node; // 先找到叶节点
+    int offset = 0;
+    int node_num = 0;
+    findpoint(root, target, cur_node, node_num, offset);
+
+    // 先判断是否真的存在这个index_value
+    if (cur_node->element[offset] != target) {
+      return;
+    }
+
+    // 判断是否对于非叶子节点有影响
+    if (offset == 1 && head != root) {
+      // 影响了上方的节点，则找到对应的节点，然后用后继进行
+      update_non_leaf_node(cur_node, node_num, cur_node->element[1],
+                           cur_node->element[2]);
+    }
+    for (int i = offset; i <= cur_node->count; i++) { // 对于叶节点进行更新
+      cur_node->element[i] = cur_node->element[i + 1];
+    }
+    cur_node->count--;
+
+    checkremove();
   }
 };
 
