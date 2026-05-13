@@ -1,0 +1,200 @@
+# ========== 操作系统生成文件 ==========
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*.swp
+*.swo
+*.swn
+
+# ========== 编辑器 / IDE ==========
+# VSCode
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA / WebStorm / PyCharm 等
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+
+# ========== 包管理器 / 依赖 ==========
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+*.egg
+dist/
+build/
+.pytest_cache/
+.coverage
+.tox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Java / Kotlin / Scala
+*.class
+*.jar
+*.war
+*.ear
+target/
+bin/
+.idea/
+.gradle/
+build/
+gradle-app.setting
+!gradle-wrapper.jar
+.gradletasknamecache
+
+# Go
+*.exe
+*.exe~
+*.test
+*.out
+/vendor/
+/bin/
+/pkg/
+
+# Rust
+/target/
+Cargo.lock
+
+# C / C++
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.out
+*.app
+*.ilk
+*.pdb
+*.exp
+*.lib
+
+# PHP
+/vendor/
+composer.lock
+
+# Ruby
+/.bundle/
+/vendor/bundle/
+Gemfile.lock
+
+# .NET / C#
+/bin/
+/obj/
+*.user
+*.suo
+*.cache
+*.csproj.user
+packages/
+*.nupkg
+
+# ========== 构建输出 ==========
+/dist/
+/build/
+/out/
+/output/
+*.log
+*.tmp
+*.temp
+*.pid
+*.seed
+*.pid.lock
+
+# ========== 环境变量 / 密钥 ==========
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+secrets.yml
+config/secrets.yml
+
+# ========== 日志 / 临时文件 ==========
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+*.sqlite
+*.db
+*.dump
+
+# ========== 测试覆盖率 ==========
+coverage/
+.nyc_output/
+*.lcov
+htmlcov/
+.tox/
+.junit/
+test-reports/
+
+# ========== 其他常见 ==========
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+*.cache
+*.sublime-workspace
+*.sublime-project
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 如果你使用 Terraform / Ansible 等
+*.tfstate
+*.tfstate.*
+.terraform/
+*.retry
+
+# 永远不要提交包含真实密码的文件
+# 可以将 secrets.toml, config.local 等加入
+*.secret
+config.local.*
