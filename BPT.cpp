@@ -353,11 +353,78 @@ public:
     delete father_node;
   }
 
-  void borrow() {}
+  void borrow(Node *require_node, Node *offer_node) {}
 
-  void merge() {}
+  void merge(Node *merge_node_1, Node *merge_node_2) {}
 
-  void checkremove() {}
+  void checkremove(Node *cur_node, const int &node_num) {
+    // 无需对树进行调整（1. root和叶子节点重合 2. 数目保持合理）
+    if (node_num == root || cur_node->count >= ceil((double)ORDER / 2.0) - 1) {
+      tree_node.update(cur_node, node_num);
+      return;
+    }
+
+    // 找到最大的兄弟，以判断是否可以借用
+    Node father_node;
+    tree_node.read(father_node, node_num);
+    int cur_pos;
+    // 确定在父节点哪条child分支上
+    if (father_node.element[father_node.count] <= cur_node->element[1]) {
+      cur_pos = father_node.count;
+    } else if (cur_node->element[1] < father_node.element[1]) {
+      cur_pos = 0;
+    } else {
+      for (int i = 1; i < father_node.count; i++) {
+        if (father_node.element[i] <= cur_node->element[1] &&
+            cur_node->element[1] < father_node.element[i + 1]) {
+          cur_pos = i;
+        }
+      }
+    }
+    Node leftbro, rightbro, maxbro;
+    int maxpos;
+    bool can_borrow = true;
+    if (cur_pos - 1 >= 0) {
+      tree_node.read(leftbro, father_node.child[cur_pos - 1]);
+    }
+    if (cur_pos + 1 <= father_node.count) {
+      tree_node.read(rightbro, father_node.child[cur_pos + 1]);
+    }
+
+    // 找出是否可以借，如果可以借，应该从哪边
+    // 不可借
+    if (leftbro.count == ceil((double)ORDER / 2.0) - 1 &&
+        rightbro.count == ceil((double)ORDER / 2.0) - 1) {
+      can_borrow = false;
+      if (rightbro.count == 0) {
+        maxbro = leftbro;
+      } else {
+        maxbro = rightbro;
+      }
+    } else {
+      // 左侧借
+      if (leftbro.count > rightbro.count) {
+        maxbro = leftbro;
+        maxpos = father_node.child[cur_pos - 1];
+      } else {
+        maxbro = rightbro;
+        maxpos = father_node.child[cur_pos + 1];
+      }
+    }
+
+    if (can_borrow) {
+      borrow(cur_node, &maxbro);
+    } else {
+      merge(cur_node, &maxbro);
+    }
+
+    // 应该放到borrow和merge中区分才有意义
+    // // 判断是否是叶子节点
+    // if (cur_node->is_leaf) {
+
+    // } else {
+    // }
+  }
 
   void remove(const index_value &target) {
     Node *cur_node; // 先找到叶节点
@@ -376,12 +443,13 @@ public:
       update_non_leaf_node(cur_node, node_num, cur_node->element[1],
                            cur_node->element[2]);
     }
+
     for (int i = offset; i <= cur_node->count; i++) { // 对于叶节点进行更新
       cur_node->element[i] = cur_node->element[i + 1];
     }
     cur_node->count--;
 
-    checkremove();
+    checkremove(cur_node, node_num);
   }
 };
 
