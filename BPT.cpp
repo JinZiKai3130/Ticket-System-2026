@@ -420,8 +420,60 @@ public:
     tree_node.update(*father_node, father_node_num);
   }
 
-  void merge(Node *merge_node_1, Node *merge_node_2,
-             const Node *const father_node) {}
+  void merge(Node *require_node, int require_node_num, Node *offer_node,
+             int offer_node_num, const Node *father_node,
+             const int &father_node_num, int father_node_offset,
+             const bool &merge_with_left) {
+    if (merge_with_left) {
+      std::swap(require_node, offer_node);
+      std::swap(require_node_num, offer_node_num);
+      father_node_offset--;
+    }
+    if (require_node->is_leaf) {
+      for (int i = 1; i <= offer_node->count; i++) {
+        require_node->element[require_node->count + i] = offer_node->element[i];
+      }
+      require_node->count += offer_node->count;
+      require_node->next = offer_node->next;
+
+      // 更改父节点上的内容
+      for (int i = father_node_offset; i < father_node->count; i++) {
+        father_node->element[i] = father_node->element[i + 1];
+        father_node->child[i] = father_node->child[i + 1];
+      }
+      father_node->count--;
+    } else {
+      Node tmp_child;
+      int tmp_child_num;
+
+      require_node->element[require_node->count + 1] =
+          father_node->element[father_node_offset + 1];
+      require_node->child[require_node->count + 1] = offer_node->child[0];
+      for (int i = 1; i <= offer_node->count; i++) {
+        require_node->element[require_node->count + i + 1] =
+            offer_node->element[i];
+        require_node->child[require_node->count + i + 1] =
+            offer_node->element[i];
+      }
+      require_node->count += 1 + offer_node->count;
+
+      // 更改父节点上的内容
+      for (int i = father_node_offset; i < father_node->count; i++) {
+        father_node->element[i] = father_node->element[i + 1];
+        father_node->child[i] = father_node->child[i + 1];
+      }
+      father_node->count--;
+
+      // 更改子节点上的内容
+      for (int i = 0; i <= offer_node->count; i++) {
+        tree_node.read(tmp_child, offer_node->child[i]);
+        tmp_child.fa = require_node_num;
+        tree_node.update(tmp_child, offer_node->child[i]);
+      }
+    }
+    tree_node.update(*require_node, require_node_num);
+    tree_node.update(*father_node, father_node_num);
+  }
 
   void checkremove(Node *cur_node, const int &node_num) {
     // 无需对树进行调整（1. root和叶子节点重合 2. 数目保持合理）
@@ -464,6 +516,7 @@ public:
         rightbro.count == ceil((double)ORDER / 2.0) - 1) {
       can_borrow = false;
       if (rightbro.count == 0) {
+        borrow_from_left = true;
         maxbro = leftbro;
       } else {
         maxbro = rightbro;
@@ -484,7 +537,8 @@ public:
       borrow(cur_node, node_num, &maxbro, maxpos, &father_node, cur_node->fa,
              cur_pos, borrow_from_left);
     } else {
-      merge(cur_node, &maxbro, &father_node);
+      merge(cur_node, node_num, &maxbro, maxpos, &father_node, cur_node->fa,
+            cur_pos, borrow_from_left);
     }
 
     // 应该放到borrow和merge中区分才有意义
@@ -523,3 +577,31 @@ public:
 };
 
 int main() { return 0; }
+
+// if (merge_with_left) {
+//   offer_node->element[offer_node->count + 1] =
+//       father_node->element[father_node_offset];
+//   offer_node->child[offer_node->count + 1] = require_node->child[0];
+//   for (int i = 1; i <= require_node->count; i++) {
+//     offer_node->element[offer_node->count + i + 1] =
+//         require_node->element[i];
+//     offer_node->child[offer_node->count + i + 1] =
+//         require_node->element[i];
+//   }
+//   offer_node->count += 1 + require_node->count;
+//   offer_node->next = require_node->next;
+
+//   // 更改父节点上的内容
+//   for (int i = father_node_offset; i < father_node->count; i++) {
+//     father_node->element[i] = father_node->element[i + 1];
+//     father_node->child[i] = father_node[i + 1];
+//   }
+//   father_node->count--;
+
+//   // 更改子节点上的内容
+//   for (int i = 0; i <= require_node->count; i++) {
+//     tree_node.read(tmp_child, require_node->child[i]);
+//     tmp_child.fa = offer_node_num;
+//     tree_node.update(tmp_child, require_node->child[i]);
+//   }
+// } else {
