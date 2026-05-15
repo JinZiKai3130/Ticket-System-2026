@@ -213,18 +213,20 @@ public:
       return;
     }
 
+    // 如果不是叶节点，则根据大小比较，继续向下寻找
     if (strcmp(target.index, cur_node.element[1].index) < 0) {
-      findpoint(cur_node.child[0], target, out_node, offset);
+      findpoint(cur_node.child[0], target, out_node, node_num, offset);
       return;
     }
     for (int i = 1; i < cur_node.count; i++) {
       if (strcmp(target.index, cur_node.element[i].index) >= 0 &&
           strcmp(target.index, cur_node.element[i + 1].index) < 0) {
-        findpoint(cur_node.child[i], target, out_node, offset);
+        findpoint(cur_node.child[i], target, out_node, node_num, offset);
         return;
       }
     }
-    findpoint(cur_node.child[cur_node.count], target, out_node, offset);
+    findpoint(cur_node.child[cur_node.count], target, out_node, node_num,
+              offset);
   }
 
   void split(Node *cur_node, const int &node_num) {
@@ -285,16 +287,16 @@ public:
       }
     }
     // 将分裂出来的两个块写入文件
-    int new_address = tree_node.write(*tmp);
+    int new_address = tree_node.write(tmp);
     cur_node->next = new_address;
     cur_node->count = selected_offset - 1;
-    tree_node.update(cur_node, node_num);
+    tree_node.update(*cur_node, node_num);
 
     // father_node更新，注意，这里先不写入文件，因为有可能继续上溢出
     father_node.child[father_offset] = new_address;
     // child更新
     if (!tmp.is_leaf) {
-      for (int i = 0; i <= tmp->count; i++) {
+      for (int i = 0; i <= tmp.count; i++) {
         Node tmp_child;
         tree_node.read(tmp_child, tmp.child[i]);
         tmp_child.fa = new_address;
@@ -307,7 +309,7 @@ public:
 
   void checkinsert(Node *cur_node, const int &node_num) {
     if (cur_node->count <= ORDER - 1) { // 没有问题
-      tree_node.update(cur_node, node_num);
+      tree_node.update(*cur_node, node_num);
       return;
     }
     split(cur_node, node_num);
@@ -362,10 +364,10 @@ public:
     delete father_node;
   }
 
-  void borrow(const Node *require_node, const int &require_node_num,
-              const Node *offer_node, const int &offer_node_num,
-              const Node *father_node, const int &father_node_num,
-              const int &father_node_offset, const bool &borrow_from_left) {
+  void borrow(Node *require_node, const int &require_node_num, Node *offer_node,
+              const int &offer_node_num, Node *father_node,
+              const int &father_node_num, const int &father_node_offset,
+              const bool &borrow_from_left) {
     if (require_node->is_leaf) {
       if (borrow_from_left) { // 从左侧借
         for (int i = require_node->count; i >= 1; i++) {
@@ -430,9 +432,8 @@ public:
   }
 
   void merge(Node *require_node, int require_node_num, Node *offer_node,
-             int offer_node_num, const Node *father_node,
-             const int &father_node_num, int father_node_offset,
-             const bool &merge_with_left) {
+             int offer_node_num, Node *father_node, const int &father_node_num,
+             int father_node_offset, const bool &merge_with_left) {
     if (merge_with_left) {
       std::swap(require_node, offer_node);
       std::swap(require_node_num, offer_node_num);
@@ -461,8 +462,7 @@ public:
       for (int i = 1; i <= offer_node->count; i++) {
         require_node->element[require_node->count + i + 1] =
             offer_node->element[i];
-        require_node->child[require_node->count + i + 1] =
-            offer_node->element[i];
+        require_node->child[require_node->count + i + 1] = offer_node->child[i];
       }
       require_node->count += 1 + offer_node->count;
 
@@ -487,7 +487,7 @@ public:
   void checkremove(Node *cur_node, const int &node_num) {
     // 无需对树进行调整（1. root和叶子节点重合 2. 数目保持合理）
     if (node_num == root || cur_node->count >= ceil((double)ORDER / 2.0) - 1) {
-      tree_node.update(cur_node, node_num);
+      tree_node.update(*cur_node, node_num);
       return;
     }
 
@@ -634,31 +634,3 @@ int main() {
   }
   return 0;
 }
-
-// if (merge_with_left) {
-//   offer_node->element[offer_node->count + 1] =
-//       father_node->element[father_node_offset];
-//   offer_node->child[offer_node->count + 1] = require_node->child[0];
-//   for (int i = 1; i <= require_node->count; i++) {
-//     offer_node->element[offer_node->count + i + 1] =
-//         require_node->element[i];
-//     offer_node->child[offer_node->count + i + 1] =
-//         require_node->element[i];
-//   }
-//   offer_node->count += 1 + require_node->count;
-//   offer_node->next = require_node->next;
-
-//   // 更改父节点上的内容
-//   for (int i = father_node_offset; i < father_node->count; i++) {
-//     father_node->element[i] = father_node->element[i + 1];
-//     father_node->child[i] = father_node[i + 1];
-//   }
-//   father_node->count--;
-
-//   // 更改子节点上的内容
-//   for (int i = 0; i <= require_node->count; i++) {
-//     tree_node.read(tmp_child, require_node->child[i]);
-//     tmp_child.fa = offer_node_num;
-//     tree_node.update(tmp_child, require_node->child[i]);
-//   }
-// } else {
