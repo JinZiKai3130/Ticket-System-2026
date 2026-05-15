@@ -145,11 +145,11 @@ public:
     head = address;
   }
 
-  bool findinterval(const int &pos, const index_value &target, int &offset,
-                    int *vec, int &num) {
+  bool findinterval(const int &pos, const index_value &target, int *vec,
+                    int &num) {
     Node cur_node;
     tree_node.read(cur_node, pos);
-    offset = 0;
+    int offset = 0;
     num = 0;
     if (cur_node.is_leaf) {
       for (int i = 1; i <= cur_node.count; i++) {
@@ -158,22 +158,27 @@ public:
           break;
         }
       }
-      // if (offset == 0) { // 有可能是下一组的第一个
-      //   int next_index = cur_node.next;
-      //   tree_node.read(cur_node, next_index);
-      //   if (strcmp(target.index, cur_node.element[1].index) == 0) {
-      //     offset = 1;
-      //   }
-      // }
+      if (offset == 0) { // 有可能是下一组的第一个
+        int next_index = cur_node.next;
+        tree_node.read(cur_node, next_index);
+        if (strcmp(target.index, cur_node.element[1].index) == 0) {
+          offset = 1;
+        }
+      }
       if (offset != 0) { // 确实存在这个index
+
+        // std::cout << "yes we find the target index\n";
+
         for (int i = offset; i <= cur_node.count; i++) {
           // 当前element index仍然和搜索的要求一致
-          if (cur_node.element[i].index == target.index) {
+          if (strcmp(cur_node.element[i].index, target.index) == 0) {
             vec[++num] = cur_node.element[i].value;
-            // 需要继续进入下一个块读入
+            // 需要继续进入下一个块读入，从当前块开始读
             if (i == cur_node.count) {
               tree_node.read(cur_node, cur_node.next);
+              offset = 1;
             }
+            // std::cout << "num++";
           } else {
             break;
           }
@@ -186,16 +191,15 @@ public:
 
     // 现在还不是叶子节点
     if (strcmp(target.index, cur_node.element[1].index) < 0) {
-      return findinterval(cur_node.child[0], target, offset, vec, num);
+      return findinterval(cur_node.child[0], target, vec, num);
     }
     for (int i = 1; i < cur_node.count; i++) {
       if (strcmp(target.index, cur_node.element[i].index) >= 0 &&
           strcmp(target.index, cur_node.element[i + 1].index) < 0) {
-        return findinterval(cur_node.child[i], target, offset, vec, num);
+        return findinterval(cur_node.child[i], target, vec, num);
       }
     }
-    return findinterval(cur_node.child[cur_node.count], target, offset, vec,
-                        num);
+    return findinterval(cur_node.child[cur_node.count], target, vec, num);
   }
 
   void findpoint(const int &pos, const index_value &target,
@@ -205,29 +209,36 @@ public:
     // 交给tmp_out_node实现自动管理
     std::shared_ptr<Node> tmp_out_node(cur_node);
 
+    // 这里的offset表示当前插入的element数组中的index，或者删除的element的index
     if (cur_node->is_leaf) {
-      std::cout << "cur_node.count = " << cur_node->count << "\n";
+      // std::cout << "cur_node.count = " << cur_node->count << "\n";
       out_node = tmp_out_node;
       node_num = pos;
-      for (int i = 1; i < cur_node->count; i++) {
-        if (cur_node->element[i] <= target &&
-            target < cur_node->element[i + 1]) {
-          offset = i;
-          return;
+      if (target <= cur_node->element[1]) {
+        offset = 1;
+      } else if (cur_node->element[cur_node->count] < target) {
+        offset = cur_node->count + 1;
+        // std::cout << "2 offset = " << offset << std::endl;
+      } else {
+        for (int i = 1; i < cur_node->count; i++) {
+          if (cur_node->element[i] < target &&
+              target <= cur_node->element[i + 1]) {
+            offset = i + 1;
+            // std::cout << "1 offset = " << offset << std::endl;
+            return;
+          }
         }
       }
-      offset = cur_node->count + 1;
       return;
     }
 
     // 如果不是叶节点，则根据大小比较，继续向下寻找
-    if (strcmp(target.index, cur_node->element[1].index) < 0) {
+    if (target < cur_node->element[1]) {
       findpoint(cur_node->child[0], target, out_node, node_num, offset);
       return;
     }
     for (int i = 1; i < cur_node->count; i++) {
-      if (strcmp(target.index, cur_node->element[i].index) >= 0 &&
-          strcmp(target.index, cur_node->element[i + 1].index) < 0) {
+      if (cur_node->element[i] <= target && target < cur_node->element[i + 1]) {
         findpoint(cur_node->child[i], target, out_node, node_num, offset);
         return;
       }
@@ -336,6 +347,12 @@ public:
     }
     cur_node->element[offset] = target;
     cur_node->count++;
+
+    // for (int i = 1; i <= cur_node->count; i++) {
+    //   std::cout << cur_node->element[i].index << " "
+    //             << cur_node->element[i].value << std::endl;
+    // }
+    // std::cout << std::endl;
 
     // step3 检查是否上溢，如果没有则写入，如果有，进行相应调整
     checkinsert(cur_node, node_num);
@@ -617,7 +634,7 @@ int main() {
         insertation.index[i] = index[i];
       }
       insertation.value = value;
-      std::cout << "start insert\n";
+      // std::cout << "start insert\n";
       B_plus_tree.insert(insertation);
     } else if (oper == "delete") {
       std::cin >> index >> value;
@@ -634,10 +651,8 @@ int main() {
         finding.index[i] = index[i];
       }
       finding.value = INT_MIN;
-      int offset = 0;
       int num = 0;
-      bool flag =
-          B_plus_tree.findinterval(B_plus_tree.root, finding, offset, ans, num);
+      bool flag = B_plus_tree.findinterval(B_plus_tree.root, finding, ans, num);
       if (!flag) {
         std::cout << "null";
       } else {
