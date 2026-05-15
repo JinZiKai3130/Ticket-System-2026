@@ -1,3 +1,4 @@
+#include <climits>
 #include <cmath>
 #include <cstring>
 #include <fstream>
@@ -83,11 +84,13 @@ public:
 
 template <typename T> class BPT {
   static const int ORDER = 128;
+
+public:
   struct index_value {
     char index[64] = {};
     T value = T();
 
-    bool operator<(const index_value &other) {
+    bool operator<(const index_value &other) const {
       int cmp = strcmp(this->index, other.index);
       if (cmp < 0)
         return true;
@@ -98,17 +101,23 @@ template <typename T> class BPT {
       }
     }
 
-    bool operator==(const index_value &other) {
+    bool operator==(const index_value &other) const {
       return (strcmp(this->index, other.index) == 0 &&
               this->value == other.value);
     }
 
-    bool operator<=(const index_value &other) {
+    bool operator<=(const index_value &other) const {
       return (*this < other) || (*this == other);
     }
 
-    bool operator!=(const index_value &other) { return !(*this == other); }
+    bool operator!=(const index_value &other) const {
+      return !(*this == other);
+    }
+
+    index_value() {}
   };
+
+private:
   struct Node {
     int fa = 0;
     int child[ORDER + 5]{}; // 0-127
@@ -121,7 +130,7 @@ template <typename T> class BPT {
     Node() {}
   };
 
-  MemoryRiver<Node> tree_node = ("tree_node");
+  MemoryRiver<Node, 30000005> tree_node{"node_data"};
 
 public:
   int head;
@@ -576,7 +585,55 @@ public:
   }
 };
 
-int main() { return 0; }
+int main() {
+  int oper_num;
+  std::string oper;
+  BPT<int> B_plus_tree;
+  B_plus_tree.init();
+  std::string index;
+  int value;
+  int ans[300005];
+  std::cin >> oper_num;
+  while (oper_num--) {
+    std::cin >> oper;
+    if (oper == "insert") {
+      std::cin >> index >> value;
+      BPT<int>::index_value insertation;
+      for (int i = 0; i < index.length(); i++) {
+        insertation.index[i] = index[i];
+      }
+      insertation.value = value;
+      B_plus_tree.insert(insertation);
+    } else if (oper == "delete") {
+      std::cin >> index >> value;
+      BPT<int>::index_value removal;
+      for (int i = 0; i < index.length(); i++) {
+        removal.index[i] = index[i];
+      }
+      removal.value = value;
+      B_plus_tree.remove(removal);
+    } else {
+      std::cin >> index;
+      BPT<int>::index_value finding;
+      for (int i = 0; i < index.length(); i++) {
+        finding.index[i] = index[i];
+      }
+      finding.value = INT_MIN;
+      int offset = 0;
+      int num = 0;
+      B_plus_tree.findinterval(B_plus_tree.root, finding, offset, ans, num);
+      if (num == 0) {
+        std::cout << "null";
+      } else {
+        for (int i = 1; i <= num; i++) {
+          std::cout << ans[i] << " ";
+        }
+      }
+      std::cout << std::endl;
+    }
+  }
+  return 0;
+}
 
 // if (merge_with_left) {
 //   offer_node->element[offer_node->count + 1] =
