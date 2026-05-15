@@ -353,9 +353,75 @@ public:
     delete father_node;
   }
 
-  void borrow(Node *require_node, Node *offer_node) {}
+  void borrow(const Node *require_node, const int &require_node_num,
+              const Node *offer_node, const int &offer_node_num,
+              const Node *father_node, const int &father_node_num,
+              const int &father_node_offset, const bool &borrow_from_left) {
+    if (require_node->is_leaf) {
+      if (borrow_from_left) { // 从左侧借
+        for (int i = require_node->count; i >= 1; i++) {
+          require_node->element[i + 1] = require_node->element[i];
+        }
+        require_node->element[1] = offer_node->element[offer_node->count];
+        require_node->count++;
+        offer_node->count--;
 
-  void merge(Node *merge_node_1, Node *merge_node_2) {}
+        father_node->element[father_node_offset] = require_node->element[1];
+      } else { // 从右侧借
+        require_node->element[++require_node->count] = offer_node->element[1];
+        for (int i = 1; i < offer_node->count; i++) {
+          offer_node->element[i] = offer_node->element[i + 1];
+        }
+        offer_node->count--;
+
+        father_node->element[father_node_offset + 1] =
+            require_node->element[require_node->count];
+      }
+    } else {
+      Node tmp_child;
+      int tmp_child_num;
+      if (borrow_from_left) {
+        for (int i = require_node->count; i >= 1; i++) {
+          require_node->element[i + 1] = require_node->element[i];
+          require_node->child[i + 1] = require_node->child[i];
+        }
+        require_node->child[1] = require_node->child[0];
+        require_node->element[1] = father_node->element[father_node_offset];
+        require_node->child[0] = offer_node->child[offer_node->count];
+        father_node->element[father_node_offset] =
+            offer_node->element[offer_node->count];
+        require_node->count++;
+        offer_node->count--;
+
+        // 还要修改require_node->child[0]
+        tree_node.read(tmp_child, require_node->child[0]);
+        tmp_child_num = require_node->child[0];
+        tmp_child.fa = require_node_num;
+      } else {
+        require_node->element[++require_node->count] =
+            father_node->element[father_node_offset + 1];
+        father_node->element[father_node_offset + 1] = offer_node->element[1];
+        require_node->child[require_node->count] = offer_node->child[0];
+        offer_node->child[0] = offer_node->child[1];
+        for (int i = 1; i < offer_node->count; i++) {
+          offer_node->element[i] = offer_node->element[i + 1];
+          offer_node->child[i] = offer_node->child[i + 1];
+        }
+        offer_node->count--;
+
+        tree_node.read(tmp_child, require_node->child[require_node->count]);
+        tmp_child_num = require_node->child[require_node->count];
+        tmp_child.fa = require_node_num;
+      }
+      tree_node.update(tmp_child, tmp_child_num);
+    }
+    tree_node.update(*require_node, require_node_num);
+    tree_node.update(*offer_node, offer_node_num);
+    tree_node.update(*father_node, father_node_num);
+  }
+
+  void merge(Node *merge_node_1, Node *merge_node_2,
+             const Node *const father_node) {}
 
   void checkremove(Node *cur_node, const int &node_num) {
     // 无需对树进行调整（1. root和叶子节点重合 2. 数目保持合理）
@@ -391,6 +457,7 @@ public:
       tree_node.read(rightbro, father_node.child[cur_pos + 1]);
     }
 
+    bool borrow_from_left = false;
     // 找出是否可以借，如果可以借，应该从哪边
     // 不可借
     if (leftbro.count == ceil((double)ORDER / 2.0) - 1 &&
@@ -405,6 +472,7 @@ public:
       // 左侧借
       if (leftbro.count > rightbro.count) {
         maxbro = leftbro;
+        borrow_from_left = true;
         maxpos = father_node.child[cur_pos - 1];
       } else {
         maxbro = rightbro;
@@ -413,9 +481,10 @@ public:
     }
 
     if (can_borrow) {
-      borrow(cur_node, &maxbro);
+      borrow(cur_node, node_num, &maxbro, maxpos, &father_node, cur_node->fa,
+             cur_pos, borrow_from_left);
     } else {
-      merge(cur_node, &maxbro);
+      merge(cur_node, &maxbro, &father_node);
     }
 
     // 应该放到borrow和merge中区分才有意义
