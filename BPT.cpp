@@ -389,25 +389,36 @@ public:
                             const index_value &to_be_removed,
                             const index_value &to_replace) {
     int cur_node_num = node_num;
-    Node *father_node = new Node;
-    std::shared_ptr<Node> tmp_fa_node(father_node);
+    Node buffer;
     while (true) {
-      if (cur_node_num == root) { // 仅有可能是全局最小值，则不会对上方造成影响
+      if (cur_node_num == root && !cur_node->is_leaf) { // 仅有可能是全局最小值
+        tree_node.read(buffer, root);
+        // 看看是否在当前的node中
+        for (int i = 1; i <= buffer.count; ++i) {
+          if (buffer.element[i] == to_be_removed) {
+            buffer.element[i] = to_replace;
+            tree_node.update(buffer, root);
+            std::cout << "found on root   offset = " << i << "\n";
+            break;
+          }
+        }
         break;
       }
 
       // 找到father，并读出来
-      tree_node.read(*father_node, cur_node->fa);
+      tree_node.read(buffer, cur_node->fa);
 
       // 判断是否是当前层交换的位置
-      if (to_be_removed < father_node->element[1]) { // 不是当前层继续向上
+      if (to_be_removed < buffer.element[1]) { // 不是当前层继续向上
         cur_node_num = cur_node->fa;
-        cur_node = tmp_fa_node;
+        cur_node = std::make_shared<Node>(buffer);
         continue;
       } else {
-        for (int i = 1; i <= tmp_fa_node->count; i++) { // 是当前层，直接交换
-          if (tmp_fa_node->element[i] == to_be_removed) {
-            tmp_fa_node->element[i] = to_replace;
+        for (int i = 1; i <= buffer.count; i++) { // 是当前层，直接交换
+          if (buffer.element[i] == to_be_removed) {
+            buffer.element[i] = to_replace;
+            tree_node.update(buffer, cur_node->fa);
+            std::cout << "found on other   offset = " << i << "\n";
             break;
           }
         }
@@ -621,6 +632,11 @@ public:
     int node_num = 0;
     findpoint(root, target, cur_node, node_num, offset);
 
+    std::cout << "find point check    node_size = " << cur_node->count
+              << " the element index on offset = "
+              << cur_node->element[offset].index
+              << " value = " << cur_node->element[offset].value << "\n";
+
     // 先判断是否真的存在这个index_value
     if (cur_node->element[offset] != target) {
       return;
@@ -629,8 +645,17 @@ public:
     // 判断是否对于非叶子节点有影响
     if (offset == 1 && head != root) {
       // 影响了上方的节点，则找到对应的节点，然后用后继进行
+      Node temp_node;
+      index_value to_replace;
+      if (cur_node->count == 1) {
+        tree_node.read(temp_node, cur_node->next);
+        to_replace = temp_node.element[1];
+      } else {
+        to_replace = cur_node->element[2];
+      }
       update_non_leaf_node(cur_node, node_num, cur_node->element[1],
-                           cur_node->element[2]);
+                           to_replace);
+      print_tree();
     }
 
     for (int i = offset; i <= cur_node->count; i++) { // 对于叶节点进行更新
@@ -701,6 +726,8 @@ int main() {
       }
       removal.value = value;
       B_plus_tree.remove(removal);
+    } else if (oper == "print") {
+      B_plus_tree.print_tree();
     } else {
       std::cin >> index;
       BPT<int>::index_value finding;
