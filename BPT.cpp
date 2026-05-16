@@ -206,8 +206,8 @@ public:
     if (target < cur_node.element[1]) {
       return findinterval(cur_node.child[0], target, vec, num);
     }
-    for (int i = 1; i <= cur_node.count; i++) {
-      if (cur_node.element[i] <= target) {
+    for (int i = 1; i < cur_node.count; i++) {
+      if (cur_node.element[i] <= target && target < cur_node.element[i + 1]) {
         return findinterval(cur_node.child[i], target, vec, num);
       }
     }
@@ -390,6 +390,7 @@ public:
                             const index_value &to_replace) {
     int cur_node_num = node_num;
     Node *father_node = new Node;
+    std::shared_ptr<Node> tmp_fa_node(father_node);
     while (true) {
       if (cur_node_num == root) { // 仅有可能是全局最小值，则不会对上方造成影响
         break;
@@ -397,7 +398,6 @@ public:
 
       // 找到father，并读出来
       tree_node.read(*father_node, cur_node->fa);
-      std::shared_ptr<Node> tmp_fa_node(father_node);
 
       // 判断是否是当前层交换的位置
       if (to_be_removed < father_node->element[1]) { // 不是当前层继续向上
@@ -405,9 +405,9 @@ public:
         cur_node = tmp_fa_node;
         continue;
       } else {
-        for (int i = 1; i <= father_node->count; i++) { // 是当前层，直接交换
-          if (father_node->element[i] == to_be_removed) {
-            father_node->element[i] = to_replace;
+        for (int i = 1; i <= tmp_fa_node->count; i++) { // 是当前层，直接交换
+          if (tmp_fa_node->element[i] == to_be_removed) {
+            tmp_fa_node->element[i] = to_replace;
             break;
           }
         }
