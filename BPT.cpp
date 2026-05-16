@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <queue>
 
 using std::fstream;
 using std::ifstream;
@@ -84,7 +85,7 @@ public:
 };
 
 template <typename T> class BPT {
-  static const int ORDER = 128;
+  static const int ORDER = 4; // 128
 
 public:
   struct index_value {
@@ -152,6 +153,7 @@ public:
     int offset = 0;
     num = 0;
     if (cur_node.is_leaf) {
+      // std::cout << "leaf_now\n";
       for (int i = 1; i <= cur_node.count; i++) {
         if (strcmp(target.index, cur_node.element[i].index) == 0) {
           offset = i;
@@ -168,16 +170,26 @@ public:
       if (offset != 0) { // 确实存在这个index
 
         // std::cout << "yes we find the target index\n";
-
-        for (int i = offset; i <= cur_node.count; i++) {
+        int i = offset;
+        while (i <= cur_node.count) {
           // 当前element index仍然和搜索的要求一致
+          // std::cout << "index = " << cur_node.element[i].index << std::endl;
           if (strcmp(cur_node.element[i].index, target.index) == 0) {
             vec[++num] = cur_node.element[i].value;
             // 需要继续进入下一个块读入，从当前块开始读
             if (i == cur_node.count) {
               tree_node.read(cur_node, cur_node.next);
-              offset = 1;
+              // std::cout << "get_next\n";
+              // std::cout << "next_first_index = " << cur_node.element[1].index
+              //           << std::endl;
+              // std::cout << "next_count = " << cur_node.count << std::endl;
+              // std::cout << "next_first_value = " << cur_node.element[1].value
+              //           << std::endl;
+              i = 1;
+            } else {
+              i++;
             }
+            // std::cout << "num = " << num << std::endl;
             // std::cout << "num++";
           } else {
             break;
@@ -190,12 +202,12 @@ public:
     }
 
     // 现在还不是叶子节点
-    if (strcmp(target.index, cur_node.element[1].index) < 0) {
+    // std::cout << "not leaf now\n";
+    if (target < cur_node.element[1]) {
       return findinterval(cur_node.child[0], target, vec, num);
     }
-    for (int i = 1; i < cur_node.count; i++) {
-      if (strcmp(target.index, cur_node.element[i].index) >= 0 &&
-          strcmp(target.index, cur_node.element[i + 1].index) < 0) {
+    for (int i = 1; i <= cur_node.count; i++) {
+      if (cur_node.element[i] <= target) {
         return findinterval(cur_node.child[i], target, vec, num);
       }
     }
@@ -236,21 +248,27 @@ public:
     if (target < cur_node->element[1]) {
       findpoint(cur_node->child[0], target, out_node, node_num, offset);
       return;
-    }
-    for (int i = 1; i < cur_node->count; i++) {
-      if (cur_node->element[i] <= target && target < cur_node->element[i + 1]) {
-        findpoint(cur_node->child[i], target, out_node, node_num, offset);
-        return;
+    } else if (cur_node->element[cur_node->count] <= target) {
+      findpoint(cur_node->child[cur_node->count], target, out_node, node_num,
+                offset);
+    } else {
+      for (int i = 1; i < cur_node->count; i++) {
+        if (cur_node->element[i] <= target &&
+            target < cur_node->element[i + 1]) {
+          findpoint(cur_node->child[i], target, out_node, node_num, offset);
+          return;
+        }
       }
     }
-    findpoint(cur_node->child[cur_node->count], target, out_node, node_num,
-              offset);
   }
 
   void split(std::shared_ptr<Node> cur_node, const int &node_num) {
     // 如果是根节点，则申请空的节点，然后其他依旧保持一致
     if (node_num == root) {
+      // std::cout << "there is the new root\n";
       Node tmp_fa;
+      tmp_fa.child[0] = node_num;
+      tmp_fa.is_leaf = false;
       cur_node->fa = tree_node.write(tmp_fa);
       root = cur_node->fa;
     }
@@ -262,17 +280,22 @@ public:
 
     // 找到父节点需要插入元素的位置
     int father_offset;
-    if (min_of_child < father_node->element[1]) {
-      father_offset = 0;
+    if (father_node->count == 0) {
+      father_offset = 1;
+    } else if (min_of_child < father_node->element[1]) {
+      father_offset = 1;
+    } else if (father_node->element[father_node->count] <= min_of_child) {
+      father_offset = father_node->count + 1;
     } else {
-      for (int i = 1; i <= father_node->count; i++) {
-        if (father_node->element[i] <= min_of_child) {
-          father_offset = i;
+      for (int i = 1; i < father_node->count; i++) {
+        if (father_node->element[i] <= min_of_child &&
+            min_of_child < father_node->element[i + 1]) {
+          father_offset = i + 1;
           break;
         }
       }
     }
-
+    // std::cout << "father_offset = " << father_offset << '\n';
     // 找到当前节点分离的位置
     int selected_offset = ceil((double)ORDER / 2.0);
 
@@ -306,7 +329,9 @@ public:
     }
     // 将分裂出来的两个块写入文件
     int new_address = tree_node.write(tmp);
-    cur_node->next = new_address;
+    if (tmp.is_leaf) {
+      cur_node->next = new_address;
+    }
     cur_node->count = selected_offset - 1;
     tree_node.update(*cur_node, node_num);
 
@@ -339,23 +364,25 @@ public:
     std::shared_ptr<Node> cur_node; // 先找到叶节点
     int offset = 1;
     int node_num = 0;
+    // std::cout << "finding point\n";
     findpoint(root, target, cur_node, node_num, offset);
 
     // step2 内存中更新
+    // std::cout << "update in memory\n";
     for (int i = cur_node->count; i >= offset; i--) {
       cur_node->element[i + 1] = cur_node->element[i];
     }
     cur_node->element[offset] = target;
     cur_node->count++;
 
+    // std::cout << "checkinsert\n";
+    // step3 检查是否上溢，如果没有则写入，如果有，进行相应调整
+    checkinsert(cur_node, node_num);
+
     // for (int i = 1; i <= cur_node->count; i++) {
     //   std::cout << cur_node->element[i].index << " "
     //             << cur_node->element[i].value << std::endl;
     // }
-    // std::cout << std::endl;
-
-    // step3 检查是否上溢，如果没有则写入，如果有，进行相应调整
-    checkinsert(cur_node, node_num);
   }
 
   void update_non_leaf_node(std::shared_ptr<Node> cur_node, const int &node_num,
@@ -523,7 +550,7 @@ public:
     // 找到最大的兄弟，以判断是否可以借用
     Node father_node;
     tree_node.read(father_node, node_num);
-    std::shared_ptr<Node> father_node_ptr(&father_node);
+    std::shared_ptr<Node> father_node_ptr = std::make_shared<Node>(father_node);
     int cur_pos;
     // 确定在父节点哪条child分支上
     if (father_node.element[father_node.count] <= cur_node->element[1]) {
@@ -539,7 +566,7 @@ public:
       }
     }
     Node leftbro, rightbro, maxbro;
-    std::shared_ptr<Node> maxbro_ptr(&maxbro);
+    std::shared_ptr<Node> maxbro_ptr = std::make_shared<Node>(maxbro);
     int maxpos;
     bool can_borrow = true;
     if (cur_pos - 1 >= 0) {
@@ -584,7 +611,6 @@ public:
     // 应该放到borrow和merge中区分才有意义
     // // 判断是否是叶子节点
     // if (cur_node->is_leaf) {
-
     // } else {
     // }
   }
@@ -614,6 +640,35 @@ public:
 
     checkremove(cur_node, node_num);
   }
+
+  void print_tree() {
+    std::cout << "\n\n---------print tree-----------\n\n";
+    std::queue<int> q;
+    q.push(root);
+    int num = 0;
+    while (!q.empty()) {
+      std::cout << "Node num " << ++num << "\n";
+      int cur = q.front();
+      q.pop();
+      Node cur_node;
+      tree_node.read(cur_node, cur);
+      if (cur_node.is_leaf) {
+        std::cout << "is_leaf ";
+      } else {
+        for (int i = 0; i <= cur_node.count; i++) {
+          q.push(cur_node.child[i]);
+        }
+        std::cout << "not_leaf ";
+      }
+
+      std::cout << "node_size = " << cur_node.count << "\n";
+      for (int i = 1; i <= cur_node.count; i++) {
+        std::cout << "index = " << cur_node.element[i].index
+                  << " value = " << cur_node.element[i].value << "\n";
+      }
+    }
+    std::cout << "\n\n---------print tree-----------\n\n";
+  }
 };
 
 int main() {
@@ -636,6 +691,8 @@ int main() {
       insertation.value = value;
       // std::cout << "start insert\n";
       B_plus_tree.insert(insertation);
+
+      // B_plus_tree.print_tree();
     } else if (oper == "delete") {
       std::cin >> index >> value;
       BPT<int>::index_value removal;
