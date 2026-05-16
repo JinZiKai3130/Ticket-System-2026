@@ -1,21 +1,21 @@
-30
+28
 insert key1 1
 insert key1 2
-insert key1 3
 insert key1 4
 insert key1 5
+insert key1 3
+insert key2 30
 insert key2 10
 insert key2 20
-insert key2 30
-insert key3 100
 insert key3 200
-insert key3 300
 insert key3 400
-insert key4 1000
-insert key4 2000
-insert key5 5000
-insert key6 6000
+insert key3 300
+insert key3 100
 insert key7 7000
+insert key6 6000
+insert key5 5000
+insert key4 2000
+insert key4 1000
 find key1
 find key2
 find key3

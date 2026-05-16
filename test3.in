@@ -1,0 +1,40 @@
+39
+insert name1 10
+insert name1 20
+insert name1 30
+insert name1 40
+insert name1 50
+insert name1 60
+insert name2 7
+insert name2 8
+insert name2 9
+insert name3 111
+insert name3 222
+insert name3 333
+insert name3 444
+insert name3 555
+insert name3 666
+insert name4 1
+insert name4 2
+insert name5 100
+insert name5 200
+insert name5 300
+insert name6 1000
+insert name6 2000
+insert name7 9999
+find name1
+find name2
+find name3
+delete name1 20
+delete name1 50
+delete name1 70
+find name1
+delete name3 333
+delete name3 444
+find name3
+delete name4 1
+find name4
+find name5
+find name6
+find name7
+find name8

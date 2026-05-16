@@ -1,0 +1,34 @@
+33
+insert keyA 5
+insert keyA 10
+insert keyA 15
+insert keyA 20
+insert keyA 25
+insert keyB 100
+insert keyB 200
+insert keyB 300
+insert keyB 400
+insert keyB 500
+insert keyC 1
+insert keyC 2
+insert keyC 3
+insert keyD 1000
+insert keyD 2000
+insert keyD 3000
+insert keyE 50
+insert keyF 60
+insert keyG 70
+insert keyH 80
+find keyA
+find keyB
+find keyC
+delete keyA 10
+delete keyA 15
+find keyA
+delete keyB 300
+delete keyB 600
+find keyB
+find keyD
+delete keyC 2
+find keyC
+find keyZ

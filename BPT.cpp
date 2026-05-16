@@ -85,7 +85,7 @@ public:
 };
 
 template <typename T> class BPT {
-  static const int ORDER = 4; // 128
+  static const int ORDER = 128; // 128
 
 public:
   struct index_value {
@@ -297,7 +297,7 @@ public:
     }
     // std::cout << "father_offset = " << father_offset << '\n';
     // 找到当前节点分离的位置
-    int selected_offset = ceil((double)ORDER / 2.0);
+    int selected_offset = ceil((double)(ORDER + 1) / 2.0);
 
     // 调整父节点的元素，并加入新的数值
     for (int i = father_node->count; i >= father_offset; i--) {
@@ -352,7 +352,7 @@ public:
   }
 
   void checkinsert(std::shared_ptr<Node> cur_node, const int &node_num) {
-    if (cur_node->count <= ORDER - 1) { // 没有问题
+    if (cur_node->count <= ORDER) { // 没有问题
       tree_node.update(*cur_node, node_num);
       return;
     }
@@ -398,7 +398,7 @@ public:
           if (buffer.element[i] == to_be_removed) {
             buffer.element[i] = to_replace;
             tree_node.update(buffer, root);
-            std::cout << "found on root   offset = " << i << "\n";
+            // std::cout << "found on root   offset = " << i << "\n";
             break;
           }
         }
@@ -418,7 +418,7 @@ public:
           if (buffer.element[i] == to_be_removed) {
             buffer.element[i] = to_replace;
             tree_node.update(buffer, cur_node->fa);
-            std::cout << "found on other   offset = " << i << "\n";
+            // std::cout << "found on other   offset = " << i << "\n";
             break;
           }
         }
@@ -632,10 +632,10 @@ public:
     int node_num = 0;
     findpoint(root, target, cur_node, node_num, offset);
 
-    std::cout << "find point check    node_size = " << cur_node->count
-              << " the element index on offset = "
-              << cur_node->element[offset].index
-              << " value = " << cur_node->element[offset].value << "\n";
+    // std::cout << "find point check    node_size = " << cur_node->count
+    //           << " the element index on offset = "
+    //           << cur_node->element[offset].index
+    //           << " value = " << cur_node->element[offset].value << "\n";
 
     // 先判断是否真的存在这个index_value
     if (cur_node->element[offset] != target) {
@@ -655,7 +655,7 @@ public:
       }
       update_non_leaf_node(cur_node, node_num, cur_node->element[1],
                            to_replace);
-      print_tree();
+      // print_tree();
     }
 
     for (int i = offset; i <= cur_node->count; i++) { // 对于叶节点进行更新
