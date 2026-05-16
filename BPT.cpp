@@ -85,7 +85,7 @@ public:
 };
 
 template <typename T> class BPT {
-  static const int ORDER = 128; // 128
+  static const int ORDER = 4; // 128
 
 public:
   struct index_value {
@@ -162,6 +162,9 @@ public:
       }
       if (offset == 0) { // 有可能是下一组的第一个
         int next_index = cur_node.next;
+        if (next_index == 0) {
+          return false;
+        }
         tree_node.read(cur_node, next_index);
         if (strcmp(target.index, cur_node.element[1].index) == 0) {
           offset = 1;
@@ -179,6 +182,9 @@ public:
             // 需要继续进入下一个块读入，从当前块开始读
             if (i == cur_node.count) {
               tree_node.read(cur_node, cur_node.next);
+              if (cur_node.next == 0) {
+                break;
+              }
               // std::cout << "get_next\n";
               // std::cout << "next_first_index = " << cur_node.element[1].index
               //           << std::endl;
@@ -448,8 +454,7 @@ public:
         }
         offer_node->count--;
 
-        father_node->element[father_node_offset + 1] =
-            require_node->element[require_node->count];
+        father_node->element[father_node_offset + 1] = require_node->element[1];
       }
     } else {
       Node tmp_child;
@@ -499,10 +504,11 @@ public:
              std::shared_ptr<Node> offer_node, int offer_node_num,
              std::shared_ptr<Node> father_node, const int &father_node_num,
              int father_node_offset, const bool &merge_with_left) {
+    int remove_index = father_node_offset + 1;
     if (merge_with_left) {
       std::swap(require_node, offer_node);
       std::swap(require_node_num, offer_node_num);
-      father_node_offset--;
+      remove_index = father_node_offset;
     }
     if (require_node->is_leaf) {
       for (int i = 1; i <= offer_node->count; i++) {
@@ -512,7 +518,7 @@ public:
       require_node->next = offer_node->next;
 
       // 更改父节点上的内容
-      for (int i = father_node_offset; i < father_node->count; i++) {
+      for (int i = remove_index; i < father_node->count; i++) {
         father_node->element[i] = father_node->element[i + 1];
         father_node->child[i] = father_node->child[i + 1];
       }
@@ -522,7 +528,7 @@ public:
       int tmp_child_num;
 
       require_node->element[require_node->count + 1] =
-          father_node->element[father_node_offset + 1];
+          father_node->element[remove_index];
       require_node->child[require_node->count + 1] = offer_node->child[0];
       for (int i = 1; i <= offer_node->count; i++) {
         require_node->element[require_node->count + i + 1] =
@@ -532,7 +538,7 @@ public:
       require_node->count += 1 + offer_node->count;
 
       // 更改父节点上的内容
-      for (int i = father_node_offset; i < father_node->count; i++) {
+      for (int i = remove_index; i < father_node->count; i++) {
         father_node->element[i] = father_node->element[i + 1];
         father_node->child[i] = father_node->child[i + 1];
       }
@@ -553,17 +559,38 @@ public:
 
   void checkremove(std::shared_ptr<Node> cur_node, const int &node_num) {
     // 无需对树进行调整（1. root和叶子节点重合 2. 数目保持合理）
-    if (node_num == root || cur_node->count >= ceil((double)ORDER / 2.0) - 1) {
+    if ((node_num == root && cur_node->count == 0)) {
+      if (!cur_node->is_leaf) {
+        root = cur_node->child[0];
+        Node new_root;
+        tree_node.read(new_root, root);
+        new_root.fa = 0;
+        tree_node.update(new_root, root);
+      } else {
+        tree_node.update(*cur_node, node_num);
+      }
+      return;
+    }
+    if ((node_num == root && cur_node->count != 0) ||
+        cur_node->count >= ceil((double)ORDER / 2.0) - 1) {
       tree_node.update(*cur_node, node_num);
       return;
     }
 
     // 找到最大的兄弟，以判断是否可以借用
     Node father_node;
-    tree_node.read(father_node, node_num);
+    tree_node.read(father_node, cur_node->fa);
     std::shared_ptr<Node> father_node_ptr = std::make_shared<Node>(father_node);
-    int cur_pos;
     // 确定在父节点哪条child分支上
+    int cur_pos = -1;
+    // 优先用指针定位，避免空叶节点访问 element[1]
+    for (int i = 0; i <= father_node.count; i++) {
+      if (father_node.child[i] == node_num) {
+        cur_pos = i;
+        break;
+      }
+    }
+
     if (father_node.element[father_node.count] <= cur_node->element[1]) {
       cur_pos = father_node.count;
     } else if (cur_node->element[1] < father_node.element[1]) {
@@ -596,8 +623,10 @@ public:
       if (rightbro.count == 0) {
         borrow_from_left = true;
         maxbro = leftbro;
+        maxpos = father_node.child[cur_pos - 1];
       } else {
         maxbro = rightbro;
+        maxpos = father_node.child[cur_pos + 1];
       }
     } else {
       // 左侧借
@@ -648,13 +677,19 @@ public:
       Node temp_node;
       index_value to_replace;
       if (cur_node->count == 1) {
-        tree_node.read(temp_node, cur_node->next);
-        to_replace = temp_node.element[1];
+        if (cur_node->next != 0) {
+          tree_node.read(temp_node, cur_node->next);
+          to_replace = temp_node.element[1];
+        } else {
+          to_replace = cur_node->element[1];
+        }
       } else {
         to_replace = cur_node->element[2];
       }
-      update_non_leaf_node(cur_node, node_num, cur_node->element[1],
-                           to_replace);
+      if (cur_node->next != 0 || cur_node->count > 1) {
+        update_non_leaf_node(cur_node, node_num, cur_node->element[1],
+                             to_replace);
+      }
       // print_tree();
     }
 

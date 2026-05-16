@@ -1,0 +1,45 @@
+44
+insert a -10
+insert a 0
+insert a 30
+insert b 1
+insert b 2
+insert b 3
+insert c 100
+insert c 200
+insert d 5
+insert e 6
+insert f 7
+insert g 8
+insert h 9
+insert i 10
+insert j 11
+insert k 12
+insert l 13
+find a
+find b
+find c
+delete a 0
+delete a 25
+find a
+delete b 2
+find b
+delete x 100
+find x
+insert a 40
+insert a 50
+find a
+delete a -10
+delete a 30
+delete a 40
+delete a 50
+find a
+find d
+find e
+find f
+find g
+find h
+find i
+find j
+find k
+find l
