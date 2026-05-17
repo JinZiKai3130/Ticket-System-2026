@@ -25,7 +25,7 @@ public:
   void initialise(string FN = "") {
     if (FN != "")
       file_name = FN;
-    file.open(file_name, std::ios::out);
+    file.open(file_name, std::ios::out | std::ios::binary | std::ios::trunc);
     int tmp = 0;
     for (int i = 0; i < info_len; ++i)
       file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
@@ -37,7 +37,7 @@ public:
     if (n > info_len)
       return;
     file.open(file_name, std::ios::in | std::ios::binary);
-    file.seekg(n - 1, std::ios::beg);
+    file.seekg((n - 1) * sizeof(int), std::ios::beg);
     file.read(reinterpret_cast<char *>(&tmp), sizeof(int));
     file.close();
   }
@@ -47,7 +47,7 @@ public:
     if (n > info_len)
       return;
     file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
-    file.seekp(n - 1, std::ios::beg);
+    file.seekp((n - 1) * sizeof(int), std::ios::beg);
     file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
     file.close();
   }
@@ -85,11 +85,11 @@ public:
 };
 
 template <typename T> class BPT {
-  static const int ORDER = 4; // 128
+  static const int ORDER = 128; // 128
 
 public:
   struct index_value {
-    char index[64] = {};
+    char index[65] = {};
     T value = T();
 
     bool operator<(const index_value &other) const {
@@ -132,18 +132,38 @@ private:
     Node() {}
   };
 
-  MemoryRiver<Node, 3000005> tree_node;
+  MemoryRiver<Node, 5> tree_node;
 
 public:
   int head;
   int root;
 
   void init() {
-    tree_node.initialise("node_data");
-    Node initial;
-    int address = tree_node.write(initial);
-    root = address;
-    head = address;
+    ifstream test("node_data", std::ios::binary);
+    bool exists = test.good();
+    test.close();
+    if (!exists) {
+      tree_node.initialise("node_data");
+      Node initial;
+      int address = tree_node.write(initial);
+      root = address;
+      head = address;
+      tree_node.write_info(root, 1);
+      tree_node.write_info(head, 2);
+      return;
+    }
+    tree_node = MemoryRiver<Node, 5>("node_data");
+    tree_node.get_info(root, 1);
+    tree_node.get_info(head, 2);
+    if (root == 0) {
+      tree_node.initialise("node_data");
+      Node initial;
+      int address = tree_node.write(initial);
+      root = address;
+      head = address;
+      tree_node.write_info(root, 1);
+      tree_node.write_info(head, 2);
+    }
   }
 
   bool findinterval(const int &pos, const index_value &target, int *vec,
@@ -232,6 +252,10 @@ public:
       // std::cout << "cur_node.count = " << cur_node->count << "\n";
       out_node = tmp_out_node;
       node_num = pos;
+      if (cur_node->count == 0) {
+        offset = 1;
+        return;
+      }
       if (target <= cur_node->element[1]) {
         offset = 1;
       } else if (cur_node->element[cur_node->count] < target) {
@@ -277,6 +301,7 @@ public:
       tmp_fa.is_leaf = false;
       cur_node->fa = tree_node.write(tmp_fa);
       root = cur_node->fa;
+      tree_node.write_info(root, 1);
     }
 
     // 读出父节点
@@ -566,13 +591,19 @@ public:
         tree_node.read(new_root, root);
         new_root.fa = 0;
         tree_node.update(new_root, root);
+        tree_node.write_info(root, 1);
+        if (new_root.is_leaf) {
+          head = root;
+          tree_node.write_info(head, 2);
+        }
       } else {
         tree_node.update(*cur_node, node_num);
       }
       return;
     }
+    int min_key = ORDER / 2;
     if ((node_num == root && cur_node->count != 0) ||
-        cur_node->count >= ceil((double)ORDER / 2.0) - 1) {
+        cur_node->count >= min_key) {
       tree_node.update(*cur_node, node_num);
       return;
     }
@@ -617,8 +648,7 @@ public:
     bool borrow_from_left = false;
     // 找出是否可以借，如果可以借，应该从哪边
     // 不可借
-    if (leftbro.count == ceil((double)ORDER / 2.0) - 1 &&
-        rightbro.count == ceil((double)ORDER / 2.0) - 1) {
+    if (leftbro.count == min_key && rightbro.count == min_key) {
       can_borrow = false;
       if (rightbro.count == 0) {
         borrow_from_left = true;
@@ -672,7 +702,7 @@ public:
     }
 
     // 判断是否对于非叶子节点有影响
-    if (offset == 1 && head != root) {
+    if (offset == 1 && node_num != root) {
       // 影响了上方的节点，则找到对应的节点，然后用后继进行
       Node temp_node;
       index_value to_replace;
