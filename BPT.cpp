@@ -186,6 +186,9 @@ public:
           return false;
         }
         tree_node.read(cur_node, next_index);
+        if (cur_node.count == 0) {
+          return false;
+        }
         if (strcmp(target.index, cur_node.element[1].index) == 0) {
           offset = 1;
         }
@@ -201,10 +204,10 @@ public:
             vec[++num] = cur_node.element[i].value;
             // 需要继续进入下一个块读入，从当前块开始读
             if (i == cur_node.count) {
-              tree_node.read(cur_node, cur_node.next);
               if (cur_node.next == 0) {
                 break;
               }
+              tree_node.read(cur_node, cur_node.next);
               // std::cout << "get_next\n";
               // std::cout << "next_first_index = " << cur_node.element[1].index
               //           << std::endl;
@@ -398,6 +401,13 @@ public:
     // std::cout << "finding point\n";
     findpoint(root, target, cur_node, node_num, offset);
 
+    bool need_update_min = false;
+    index_value old_min;
+    if (node_num != root && cur_node->is_leaf && cur_node->count > 0 &&
+        offset == 1) {
+      old_min = cur_node->element[1];
+      need_update_min = true;
+    }
     // step2 内存中更新
     // std::cout << "update in memory\n";
     for (int i = cur_node->count; i >= offset; i--) {
@@ -405,6 +415,10 @@ public:
     }
     cur_node->element[offset] = target;
     cur_node->count++;
+
+    if (need_update_min && old_min != cur_node->element[1]) {
+      update_non_leaf_node(cur_node, node_num, old_min, cur_node->element[1]);
+    }
 
     // std::cout << "checkinsert\n";
     // step3 检查是否上溢，如果没有则写入，如果有，进行相应调整
@@ -464,7 +478,7 @@ public:
               const int &father_node_offset, const bool &borrow_from_left) {
     if (require_node->is_leaf) {
       if (borrow_from_left) { // 从左侧借
-        for (int i = require_node->count; i >= 1; i++) {
+        for (int i = require_node->count; i >= 1; i--) {
           require_node->element[i + 1] = require_node->element[i];
         }
         require_node->element[1] = offer_node->element[offer_node->count];
@@ -479,13 +493,13 @@ public:
         }
         offer_node->count--;
 
-        father_node->element[father_node_offset + 1] = require_node->element[1];
+        father_node->element[father_node_offset + 1] = offer_node->element[1];
       }
     } else {
       Node tmp_child;
       int tmp_child_num;
       if (borrow_from_left) {
-        for (int i = require_node->count; i >= 1; i++) {
+        for (int i = require_node->count; i >= 1; i--) {
           require_node->element[i + 1] = require_node->element[i];
           require_node->child[i + 1] = require_node->child[i];
         }
@@ -612,6 +626,21 @@ public:
     Node father_node;
     tree_node.read(father_node, cur_node->fa);
     std::shared_ptr<Node> father_node_ptr = std::make_shared<Node>(father_node);
+    if (father_node.count == 0) {
+      if (cur_node->fa == root) {
+        root = node_num;
+        cur_node->fa = 0;
+        tree_node.update(*cur_node, node_num);
+        tree_node.write_info(root, 1);
+        if (cur_node->is_leaf) {
+          head = root;
+          tree_node.write_info(head, 2);
+        }
+      } else {
+        tree_node.update(*cur_node, node_num);
+      }
+      return;
+    }
     // 确定在父节点哪条child分支上
     int cur_pos = -1;
     // 优先用指针定位，避免空叶节点访问 element[1]
@@ -621,54 +650,65 @@ public:
         break;
       }
     }
-
-    if (father_node.element[father_node.count] <= cur_node->element[1]) {
-      cur_pos = father_node.count;
-    } else if (cur_node->element[1] < father_node.element[1]) {
-      cur_pos = 0;
-    } else {
-      for (int i = 1; i < father_node.count; i++) {
-        if (father_node.element[i] <= cur_node->element[1] &&
-            cur_node->element[1] < father_node.element[i + 1]) {
-          cur_pos = i;
+    if (cur_pos == -1) {
+      if (father_node.element[father_node.count] <= cur_node->element[1]) {
+        cur_pos = father_node.count;
+      } else if (cur_node->element[1] < father_node.element[1]) {
+        cur_pos = 0;
+      } else {
+        for (int i = 1; i < father_node.count; i++) {
+          if (father_node.element[i] <= cur_node->element[1] &&
+              cur_node->element[1] < father_node.element[i + 1]) {
+            cur_pos = i;
+            break;
+          }
         }
       }
     }
     Node leftbro, rightbro, maxbro;
-    std::shared_ptr<Node> maxbro_ptr = std::make_shared<Node>(maxbro);
-    int maxpos;
-    bool can_borrow = true;
-    if (cur_pos - 1 >= 0) {
+    int maxpos = 0;
+    bool can_borrow = false;
+    bool has_left = (cur_pos - 1 >= 0);
+    bool has_right = (cur_pos + 1 <= father_node.count);
+    if (!has_left && !has_right) {
+      tree_node.update(*cur_node, node_num);
+      return;
+    }
+    if (has_left) {
       tree_node.read(leftbro, father_node.child[cur_pos - 1]);
     }
-    if (cur_pos + 1 <= father_node.count) {
+    if (has_right) {
       tree_node.read(rightbro, father_node.child[cur_pos + 1]);
     }
 
     bool borrow_from_left = false;
     // 找出是否可以借，如果可以借，应该从哪边
-    // 不可借
-    if (leftbro.count == min_key && rightbro.count == min_key) {
-      can_borrow = false;
-      if (rightbro.count == 0) {
-        borrow_from_left = true;
-        maxbro = leftbro;
-        maxpos = father_node.child[cur_pos - 1];
-      } else {
+    if (has_left && leftbro.count > min_key) {
+      can_borrow = true;
+      maxbro = leftbro;
+      maxpos = father_node.child[cur_pos - 1];
+      borrow_from_left = true;
+    }
+    if (has_right && rightbro.count > min_key) {
+      if (!can_borrow || rightbro.count > maxbro.count) {
+        can_borrow = true;
         maxbro = rightbro;
         maxpos = father_node.child[cur_pos + 1];
-      }
-    } else {
-      // 左侧借
-      if (leftbro.count > rightbro.count) {
-        maxbro = leftbro;
-        borrow_from_left = true;
-        maxpos = father_node.child[cur_pos - 1];
-      } else {
-        maxbro = rightbro;
-        maxpos = father_node.child[cur_pos + 1];
+        borrow_from_left = false;
       }
     }
+    if (!can_borrow) {
+      if (has_left) {
+        maxbro = leftbro;
+        maxpos = father_node.child[cur_pos - 1];
+        borrow_from_left = true;
+      } else {
+        maxbro = rightbro;
+        maxpos = father_node.child[cur_pos + 1];
+        borrow_from_left = false;
+      }
+    }
+    std::shared_ptr<Node> maxbro_ptr = std::make_shared<Node>(maxbro);
 
     if (can_borrow) {
       borrow(cur_node, node_num, maxbro_ptr, maxpos, father_node_ptr,
@@ -697,6 +737,9 @@ public:
     //           << " value = " << cur_node->element[offset].value << "\n";
 
     // 先判断是否真的存在这个index_value
+    if (cur_node->count == 0 || offset < 1 || offset > cur_node->count) {
+      return;
+    }
     if (cur_node->element[offset] != target) {
       return;
     }
@@ -775,7 +818,11 @@ int main() {
     if (oper == "insert") {
       std::cin >> index >> value;
       BPT<int>::index_value insertation;
-      for (int i = 0; i < index.length(); i++) {
+      size_t copy_len = index.size();
+      if (copy_len >= sizeof(insertation.index)) {
+        copy_len = sizeof(insertation.index) - 1;
+      }
+      for (size_t i = 0; i < copy_len; i++) {
         insertation.index[i] = index[i];
       }
       insertation.value = value;
@@ -786,7 +833,11 @@ int main() {
     } else if (oper == "delete") {
       std::cin >> index >> value;
       BPT<int>::index_value removal;
-      for (int i = 0; i < index.length(); i++) {
+      size_t copy_len = index.size();
+      if (copy_len >= sizeof(removal.index)) {
+        copy_len = sizeof(removal.index) - 1;
+      }
+      for (size_t i = 0; i < copy_len; i++) {
         removal.index[i] = index[i];
       }
       removal.value = value;
@@ -796,7 +847,11 @@ int main() {
     } else {
       std::cin >> index;
       BPT<int>::index_value finding;
-      for (int i = 0; i < index.length(); i++) {
+      size_t copy_len = index.size();
+      if (copy_len >= sizeof(finding.index)) {
+        copy_len = sizeof(finding.index) - 1;
+      }
+      for (size_t i = 0; i < copy_len; i++) {
         finding.index[i] = index[i];
       }
       finding.value = INT_MIN;
