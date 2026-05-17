@@ -107,7 +107,7 @@ public:
 };
 
 template <typename T> class BPT {
-  static const int ORDER = 128; // 128
+  static const int ORDER = 85; // 128
 
 public:
   struct index_value {
