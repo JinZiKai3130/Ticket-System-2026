@@ -22,65 +22,87 @@ public:
 
   MemoryRiver(const string &file_name) : file_name(file_name) {}
 
+  ~MemoryRiver() {
+    if (file.is_open())
+      file.close();
+  }
+
+  // 初始化为新文件（覆盖原内容）
   void initialise(string FN = "") {
     if (FN != "")
       file_name = FN;
+    if (file.is_open())
+      file.close();
     file.open(file_name, std::ios::out | std::ios::binary | std::ios::trunc);
     int tmp = 0;
     for (int i = 0; i < info_len; ++i)
-      file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
+      file.write(reinterpret_cast<const char *>(&tmp), sizeof(int));
     file.close();
+  }
+
+  void open_existing(const string &FN) {
+    file_name = FN;
+    if (file.is_open())
+      file.close();
+    file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+  }
+
+  void ensure_open() {
+    if (!file.is_open()) {
+      file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+      if (!file.is_open()) {
+        file.clear();
+        file.open(file_name,
+                  std::ios::out | std::ios::binary | std::ios::trunc);
+        file.close();
+        file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+      }
+    }
   }
 
   // 读出第n个int的值赋给tmp，1_base
   void get_info(int &tmp, int n) {
     if (n > info_len)
       return;
-    file.open(file_name, std::ios::in | std::ios::binary);
+    ensure_open();
     file.seekg((n - 1) * sizeof(int), std::ios::beg);
     file.read(reinterpret_cast<char *>(&tmp), sizeof(int));
-    file.close();
+    // 无需 close
   }
 
   // 将tmp写入第n个int的位置，1_base
   void write_info(int tmp, int n) {
     if (n > info_len)
       return;
-    file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+    ensure_open();
     file.seekp((n - 1) * sizeof(int), std::ios::beg);
-    file.write(reinterpret_cast<char *>(&tmp), sizeof(int));
-    file.close();
+    file.write(reinterpret_cast<const char *>(&tmp), sizeof(int));
+    // 无需 close，可根据需要 flush
   }
 
-  // 在文件合适位置写入类对象t，并返回写入的位置索引index
-  // 位置索引意味着当输入正确的位置索引index，在以下三个函数中都能顺利的找到目标对象进行操作
-  // 位置索引index可以取为对象写入的起始位置
+  // 在文件末尾写入对象t，返回写入位置索引
   int write(T &t) {
-    file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+    ensure_open();
     file.seekp(0, std::ios::end);
     int index = file.tellp();
-    file.write(reinterpret_cast<const char *>(&t), sizeof(T));
-    file.close();
+    file.write(reinterpret_cast<const char *>(&t), sizeofT);
     return index;
   }
 
-  // 用t的值更新位置索引index对应的对象，保证调用的index都是由write函数产生
+  // 用t更新位置索引index处的对象
   void update(T &t, const int index) {
-    file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+    ensure_open();
     file.seekp(index, std::ios::beg);
-    file.write(reinterpret_cast<const char *>(&t), sizeof(T));
-    file.close();
+    file.write(reinterpret_cast<const char *>(&t), sizeofT);
   }
 
-  // 读出位置索引index对应的T对象的值并赋值给t，保证调用的index都是由write函数产生
+  // 读取位置索引index处的对象到t
   void read(T &t, const int index) {
-    file.open(file_name, std::ios::in | std::ios::binary);
+    ensure_open();
     file.seekg(index, std::ios::beg);
-    file.read(reinterpret_cast<char *>(&t), sizeof(T));
-    file.close();
+    file.read(reinterpret_cast<char *>(&t), sizeofT);
   }
 
-  // 删除位置索引index对应的对象(不涉及空间回收时，可忽略此函数)，保证调用的index都是由write函数产生
   void Delete(int index) {}
 };
 
@@ -152,7 +174,7 @@ public:
       tree_node.write_info(head, 2);
       return;
     }
-    tree_node = MemoryRiver<Node, 5>("node_data");
+    tree_node.open_existing("node_data");
     tree_node.get_info(root, 1);
     tree_node.get_info(head, 2);
     if (root == 0) {
