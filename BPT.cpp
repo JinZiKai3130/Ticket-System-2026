@@ -1,15 +1,83 @@
+// #include "shared_ptr.hpp"
 #include <climits>
 #include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <queue>
 
 using std::fstream;
 using std::ifstream;
 using std::ofstream;
 using std::string;
+
+template <typename T> class shared_ptr {
+public:
+  shared_ptr(T *ptr = nullptr)
+      : ptr_(ptr), count(ptr ? new std::size_t(1) : nullptr) {}
+
+  shared_ptr(const shared_ptr &other) : ptr_(other.ptr_), count(other.count) {
+    if (count) {
+      ++(*count);
+    }
+  }
+
+  shared_ptr(shared_ptr &&other) : ptr_(other.ptr_), count(other.count) {
+    other.ptr_ = nullptr;
+    other.count = nullptr;
+  }
+
+  shared_ptr &operator=(const shared_ptr &other) {
+    if (this != &other) {
+      release();
+      ptr_ = other.ptr_;
+      count = other.count;
+      if (count) {
+        ++(*count);
+      }
+    }
+    return *this;
+  }
+
+  shared_ptr &operator=(shared_ptr &&other) {
+    if (this != &other) {
+      release();
+      ptr_ = other.ptr_;
+      count = other.count;
+      other.ptr_ = nullptr;
+      other.count = nullptr;
+    }
+    return *this;
+  }
+
+  ~shared_ptr() { release(); }
+
+  T &operator*() const { return *ptr_; }
+
+  T *operator->() const { return ptr_; }
+
+  std::size_t use_count() const { return count ? *count : 0; }
+
+private:
+  T *ptr_;
+  std::size_t *count;
+
+  void release() {
+    if (count) {
+      --(*count);
+      if (*count == 0) {
+        delete ptr_;
+        delete count;
+      }
+    }
+    ptr_ = nullptr;
+    count = nullptr;
+  }
+};
+
+template <typename T> shared_ptr<T> make_shared(const T &arg) {
+  return shared_ptr<T>(new T(arg));
+}
 
 template <typename T, int info_len = 2> class MemoryRiver {
 private:
@@ -266,11 +334,11 @@ public:
   }
 
   void findpoint(const int &pos, const index_value &target,
-                 std::shared_ptr<Node> &out_node, int &node_num, int &offset) {
+                 shared_ptr<Node> &out_node, int &node_num, int &offset) {
     Node *cur_node = new Node;
     tree_node.read(*cur_node, pos);
     // 交给tmp_out_node实现自动管理
-    std::shared_ptr<Node> tmp_out_node(cur_node);
+    shared_ptr<Node> tmp_out_node(cur_node);
 
     // 这里的offset表示当前插入的element数组中的index，或者删除的element的index
     if (cur_node->is_leaf) {
@@ -317,7 +385,7 @@ public:
     }
   }
 
-  void split(std::shared_ptr<Node> cur_node, const int &node_num) {
+  void split(shared_ptr<Node> cur_node, const int &node_num) {
     // 如果是根节点，则申请空的节点，然后其他依旧保持一致
     if (node_num == root) {
       // std::cout << "there is the new root\n";
@@ -403,11 +471,11 @@ public:
       }
     }
 
-    std::shared_ptr<Node> tmp_fa(father_node);
+    shared_ptr<Node> tmp_fa(father_node);
     checkinsert(tmp_fa, cur_node->fa);
   }
 
-  void checkinsert(std::shared_ptr<Node> cur_node, const int &node_num) {
+  void checkinsert(shared_ptr<Node> cur_node, const int &node_num) {
     if (cur_node->count <= ORDER) { // 没有问题
       tree_node.update(*cur_node, node_num);
       return;
@@ -417,7 +485,7 @@ public:
 
   void insert(const index_value &target) {
     // step1 找位置
-    std::shared_ptr<Node> cur_node; // 先找到叶节点
+    shared_ptr<Node> cur_node; // 先找到叶节点
     int offset = 1;
     int node_num = 0;
     // std::cout << "finding point\n";
@@ -452,7 +520,7 @@ public:
     // }
   }
 
-  void update_non_leaf_node(std::shared_ptr<Node> cur_node, const int &node_num,
+  void update_non_leaf_node(shared_ptr<Node> cur_node, const int &node_num,
                             const index_value &to_be_removed,
                             const index_value &to_replace) {
     int cur_node_num = node_num;
@@ -478,7 +546,7 @@ public:
       // 判断是否是当前层交换的位置
       if (to_be_removed < buffer.element[1]) { // 不是当前层继续向上
         cur_node_num = cur_node->fa;
-        cur_node = std::make_shared<Node>(buffer);
+        cur_node = make_shared<Node>(buffer);
         continue;
       } else {
         for (int i = 1; i <= buffer.count; i++) { // 是当前层，直接交换
@@ -494,9 +562,9 @@ public:
     }
   }
 
-  void borrow(std::shared_ptr<Node> require_node, const int &require_node_num,
-              std::shared_ptr<Node> offer_node, const int &offer_node_num,
-              std::shared_ptr<Node> father_node, const int &father_node_num,
+  void borrow(shared_ptr<Node> require_node, const int &require_node_num,
+              shared_ptr<Node> offer_node, const int &offer_node_num,
+              shared_ptr<Node> father_node, const int &father_node_num,
               const int &father_node_offset, const bool &borrow_from_left) {
     if (require_node->is_leaf) {
       if (borrow_from_left) { // 从左侧借
@@ -561,9 +629,9 @@ public:
     checkremove(father_node, father_node_num);
   }
 
-  void merge(std::shared_ptr<Node> require_node, int require_node_num,
-             std::shared_ptr<Node> offer_node, int offer_node_num,
-             std::shared_ptr<Node> father_node, const int &father_node_num,
+  void merge(shared_ptr<Node> require_node, int require_node_num,
+             shared_ptr<Node> offer_node, int offer_node_num,
+             shared_ptr<Node> father_node, const int &father_node_num,
              int father_node_offset, const bool &merge_with_left) {
     int remove_index = father_node_offset + 1;
     if (merge_with_left) {
@@ -618,7 +686,7 @@ public:
     // tree_node.update(*father_node, father_node_num);
   }
 
-  void checkremove(std::shared_ptr<Node> cur_node, const int &node_num) {
+  void checkremove(shared_ptr<Node> cur_node, const int &node_num) {
     // 无需对树进行调整（1. root和叶子节点重合 2. 数目保持合理）
     if ((node_num == root && cur_node->count == 0)) {
       if (!cur_node->is_leaf) {
@@ -647,7 +715,7 @@ public:
     // 找到最大的兄弟，以判断是否可以借用
     Node father_node;
     tree_node.read(father_node, cur_node->fa);
-    std::shared_ptr<Node> father_node_ptr = std::make_shared<Node>(father_node);
+    shared_ptr<Node> father_node_ptr = make_shared<Node>(father_node);
     if (father_node.count == 0) {
       if (cur_node->fa == root) {
         root = node_num;
@@ -730,7 +798,7 @@ public:
         borrow_from_left = false;
       }
     }
-    std::shared_ptr<Node> maxbro_ptr = std::make_shared<Node>(maxbro);
+    shared_ptr<Node> maxbro_ptr = make_shared<Node>(maxbro);
 
     if (can_borrow) {
       borrow(cur_node, node_num, maxbro_ptr, maxpos, father_node_ptr,
@@ -748,7 +816,7 @@ public:
   }
 
   void remove(const index_value &target) {
-    std::shared_ptr<Node> cur_node; // 先找到叶节点
+    shared_ptr<Node> cur_node; // 先找到叶节点
     int offset = 0;
     int node_num = 0;
     findpoint(root, target, cur_node, node_num, offset);
