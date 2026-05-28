@@ -1,0 +1,231 @@
+#include "../include/user.hpp"
+// #include "../include/map.hpp"
+#include <sstream>
+
+bool UserManager::check_login(const string &username) {
+  for (int i = 0; i < user_stack.size(); i++) {
+    if (strcmp(user_stack[i].username, username.c_str()) == 0)
+      return 1;
+  }
+  return 0;
+}
+
+bool UserManager::check_username(const std::string &str) {
+  if (str.empty() || str.size() > 20) {
+    return false;
+  }
+
+  char first = str[0];
+  if (!((first >= 'A' && first <= 'Z') || (first >= 'a' && first <= 'z'))) {
+    return false;
+  }
+  for (int i = 1; i < str.size(); ++i) {
+    char ch = str[i];
+    bool isLetter = (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
+    bool isDigit = (ch >= '0' && ch <= '9');
+    bool isUnderline = (ch == '_');
+
+    if (!isLetter && !isDigit && !isUnderline) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool UserManager::check_password(const std::string &str) {
+  if (str.size() < 1 || str.size() > 30) {
+    return false;
+  }
+  for (char ch : str) {
+    if (!(ch >= ' ' && ch <= '~')) { // 可能有问题，空格是否是可见字符
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool UserManager::check_name(const std::string &str) {
+  int total_bytes = str.size();
+  if (total_bytes < 6 || total_bytes > 15) {
+    return false;
+  }
+  if (total_bytes % 3 != 0) {
+    return false;
+  }
+  for (int i = 0; i < total_bytes; i += 3) {
+    unsigned char byte1 = static_cast<unsigned char>(str[i]);
+    unsigned char byte2 = static_cast<unsigned char>(str[i + 1]);
+    unsigned char byte3 = static_cast<unsigned char>(str[i + 2]);
+
+    // 首字节范围，来自豆包，224-239中不只有中文还有日文等
+    bool check1 = (byte1 >= 228 && byte1 <= 233);
+    bool check2 = (byte2 >= 128 && byte2 <= 191);
+    bool check3 = (byte3 >= 128 && byte3 <= 191);
+
+    if (!check1 || !check2 || !check3) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool UserManager::check_mail(const std::string &str) {
+  if (str.empty() || str.size() > 30) {
+    return false;
+  }
+  for (size_t i = 0; i < str.size(); ++i) {
+    char ch = str[i];
+    bool isUpper = (ch >= 'A' && ch <= 'Z');
+    bool isLower = (ch >= 'a' && ch <= 'z');
+    bool isDigit = (ch >= '0' && ch <= '9');
+    bool isAt = (ch == '@');
+    bool isDot = (ch == '.');
+    if (!isUpper && !isLower && !isDigit && !isAt && !isDot) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool UserManager::check_privilege(const std::string &str) {
+  int priv;
+  try {
+    priv = std::stoi(str);
+  } catch (...) {
+    return false;
+  }
+  if (priv >= 0 && priv <= 10) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void UserManager::add_user_parser(const std::string input,
+                                  std::string &cur_username,
+                                  std::string &username, std::string &password,
+                                  std::string &name, std::string &mail,
+                                  int &privilege) {
+  std::stringstream ss(input);
+  std::string token;
+  std::string type;
+
+  // -c -u -p -n -m -g
+  while (ss >> type) {
+    ss >> token;
+    if (type == "-c") {
+      cur_username = token;
+    } else if (type == "-u") {
+      username = token;
+    } else if (type == "-p") {
+      password = token;
+    } else if (type == "-n") {
+      name = token;
+    } else if (type == "-m") {
+      mail = token;
+    } else if (type == "-g") {
+      try {
+        int tmp = std::stoi(token);
+        privilege = tmp;
+      } catch (...) {
+        privilege = -1;
+      }
+    }
+  }
+}
+
+void UserManager::login_parser(const std::string input, std::string &username,
+                               std::string &password) {
+  std::stringstream ss(input);
+  std::string token;
+  std::string type;
+
+  // -u -p
+  while (ss >> type) {
+    ss >> token;
+    if (type == "-u") {
+      username = token;
+    } else if (type == "-p") {
+      password = token;
+    }
+  }
+}
+
+sjtu::map<std::string, std::string>
+UserManager::user_parser(const std::string &input) {
+  sjtu::map<std::string, std::string> info;
+  std::stringstream ss(input);
+  std::string token;
+  std::string type;
+
+  while (ss >> type) {
+    ss >> token;
+    info[type] = token;
+  }
+  return info;
+}
+
+void UserManager::print_user(const User *cur_user) {
+  std::cout << cur_user->username << " " << cur_user->name << " "
+            << cur_user->mail << " " << cur_user->privilege << "\n";
+}
+
+UserManager::UserManager(const std::string &file_name) {
+  user_info.init(file_name);
+  user_stack.clear();
+}
+
+int UserManager::add_user(const std::string &oper) {
+  sjtu::map<std::string, std::string> info = user_parser(oper);
+  // -c -u -p -n -m -g
+  auto cur_user_iterator = info.find("-c");
+  auto user_iterator = info.find("-u");
+  auto password_iterator = info.find("-p");
+  auto name_iterator = info.find("-n");
+  auto mail_iterator = info.find("-m");
+  auto privilege = info.find("-g");
+  // 输入总体格式不符合
+  if (cur_user_iterator == info.end() || user_iterator == info.end() ||
+      password_iterator == info.end() || name_iterator == info.end() ||
+      mail_iterator == info.end() || privilege == info.end()) {
+    return -1;
+  }
+  // 每个小项目不符合
+  if (!check_username(info["-u"]) || !check_password(info["-p"]) ||
+      !check_name(info["-n"]) || !check_mail(info["-m"])) {
+    return -1;
+  }
+  int new_priv;
+  if (!user_info.empty()) { // 非空且login有问题或者privilege有问题
+    if ((!check_login(info["-c"]) || !check_privilege(info["-g"]))) {
+      return -1;
+    }
+    new_priv = std::stoi(info["-g"]);
+    for (int i = 0; i < user_stack.size(); i++) {
+      if (user_stack[i].username == info["-c"]) {
+        if (user_stack[i].privilege <= new_priv) {
+          return -1;
+        } else {
+          break;
+        }
+      }
+    }
+  } else {
+    new_priv = 10;
+  }
+
+  // 首先，查找是否已有username，返回-1
+  // 然后实现add，返回0
+  return 0;
+}
+
+int UserManager::login(const std::string &oper) {}
+
+int UserManager::logout(const std::string &oper) {}
+
+int UserManager::query_profile(const std::string &oper) {}
+
+int UserManager::modify_profile(const std::string &oper) {}
+
+std::string UserManager::get_cur_user() {}

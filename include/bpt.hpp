@@ -1,10 +1,8 @@
-// #include "shared_ptr.hpp"
-#include <climits>
+#pragma once
 #include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iostream>
-#include <queue>
 
 using std::fstream;
 using std::ifstream;
@@ -228,6 +226,14 @@ public:
   int head;
   int root;
 
+  int get_node_size(const int &pos) const {
+    Node cur;
+    tree_node.read(cur, pos);
+    return cur.count;
+  }
+
+  bool empty() const { return (get_node_size(root) == 0); }
+
   void init(std::string the_file_name) {
     ifstream test(the_file_name, std::ios::binary);
     bool exists = test.good();
@@ -256,7 +262,7 @@ public:
     }
   }
 
-  bool findinterval(const int &pos, const index_value &target, int *vec,
+  bool findinterval(const int &pos, const index_value &target, T *vec,
                     int &num) {
     Node cur_node;
     tree_node.read(cur_node, pos);
@@ -867,99 +873,4 @@ public:
 
     checkremove(cur_node, node_num);
   }
-
-  void print_tree() {
-    std::cout << "\n\n---------print tree-----------\n\n";
-    std::queue<int> q;
-    q.push(root);
-    int num = 0;
-    while (!q.empty()) {
-      std::cout << "Node num " << ++num << "\n";
-      int cur = q.front();
-      q.pop();
-      Node cur_node;
-      tree_node.read(cur_node, cur);
-      if (cur_node.is_leaf) {
-        std::cout << "is_leaf ";
-      } else {
-        for (int i = 0; i <= cur_node.count; i++) {
-          q.push(cur_node.child[i]);
-        }
-        std::cout << "not_leaf ";
-      }
-
-      std::cout << "node_size = " << cur_node.count << "\n";
-      for (int i = 1; i <= cur_node.count; i++) {
-        std::cout << "index = " << cur_node.element[i].index
-                  << " value = " << cur_node.element[i].value << "\n";
-      }
-    }
-    std::cout << "\n\n---------print tree-----------\n\n";
-  }
 };
-
-int main() {
-  int oper_num;
-  std::string oper;
-  BPT<int> B_plus_tree;
-  B_plus_tree.init("node_tree");
-  std::string index;
-  int value;
-  int ans[300005];
-  std::cin >> oper_num;
-  while (oper_num--) {
-    std::cin >> oper;
-    if (oper == "insert") {
-      std::cin >> index >> value;
-      BPT<int>::index_value insertation;
-      size_t copy_len = index.size();
-      if (copy_len >= sizeof(insertation.index)) {
-        copy_len = sizeof(insertation.index) - 1;
-      }
-      for (size_t i = 0; i < copy_len; i++) {
-        insertation.index[i] = index[i];
-      }
-      insertation.value = value;
-      // std::cout << "start insert\n";
-      B_plus_tree.insert(insertation);
-
-      // B_plus_tree.print_tree();
-    } else if (oper == "delete") {
-      std::cin >> index >> value;
-      BPT<int>::index_value removal;
-      size_t copy_len = index.size();
-      if (copy_len >= sizeof(removal.index)) {
-        copy_len = sizeof(removal.index) - 1;
-      }
-      for (size_t i = 0; i < copy_len; i++) {
-        removal.index[i] = index[i];
-      }
-      removal.value = value;
-      B_plus_tree.remove(removal);
-    } else if (oper == "print") {
-      B_plus_tree.print_tree();
-    } else {
-      std::cin >> index;
-      BPT<int>::index_value finding;
-      size_t copy_len = index.size();
-      if (copy_len >= sizeof(finding.index)) {
-        copy_len = sizeof(finding.index) - 1;
-      }
-      for (size_t i = 0; i < copy_len; i++) {
-        finding.index[i] = index[i];
-      }
-      finding.value = INT_MIN;
-      int num = 0;
-      bool flag = B_plus_tree.findinterval(B_plus_tree.root, finding, ans, num);
-      if (!flag) {
-        std::cout << "null";
-      } else {
-        for (int i = 1; i <= num; i++) {
-          std::cout << ans[i] << " ";
-        }
-      }
-      std::cout << std::endl;
-    }
-  }
-  return 0;
-}
