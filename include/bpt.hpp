@@ -205,6 +205,11 @@ public:
     }
 
     index_value() {}
+
+    index_value(const char *str, const T &other) {
+      strcpy(index, str);
+      value = other;
+    }
   };
 
 private:

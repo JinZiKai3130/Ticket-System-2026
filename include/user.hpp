@@ -13,6 +13,9 @@ class UserManager {
     int privilege;
 
     bool operator<(const User &other) {
+      if (strcmp(username, other.username) == 0) {
+        return privilege < other.privilege;
+      }
       return (strcmp(username, other.username) < 0);
     }
   };
@@ -21,7 +24,7 @@ class UserManager {
 
   BPT<User> user_info;
 
-  bool check_login(const std::string &);
+  bool check_login(const std::string &, int &);
 
   bool check_username(const std::string &);
 
