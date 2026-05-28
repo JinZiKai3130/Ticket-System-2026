@@ -102,56 +102,6 @@ bool UserManager::check_privilege(const std::string &str) {
   }
 }
 
-void UserManager::add_user_parser(const std::string input,
-                                  std::string &cur_username,
-                                  std::string &username, std::string &password,
-                                  std::string &name, std::string &mail,
-                                  int &privilege) {
-  std::stringstream ss(input);
-  std::string token;
-  std::string type;
-
-  // -c -u -p -n -m -g
-  while (ss >> type) {
-    ss >> token;
-    if (type == "-c") {
-      cur_username = token;
-    } else if (type == "-u") {
-      username = token;
-    } else if (type == "-p") {
-      password = token;
-    } else if (type == "-n") {
-      name = token;
-    } else if (type == "-m") {
-      mail = token;
-    } else if (type == "-g") {
-      try {
-        int tmp = std::stoi(token);
-        privilege = tmp;
-      } catch (...) {
-        privilege = -1;
-      }
-    }
-  }
-}
-
-void UserManager::login_parser(const std::string input, std::string &username,
-                               std::string &password) {
-  std::stringstream ss(input);
-  std::string token;
-  std::string type;
-
-  // -u -p
-  while (ss >> type) {
-    ss >> token;
-    if (type == "-u") {
-      username = token;
-    } else if (type == "-p") {
-      password = token;
-    }
-  }
-}
-
 sjtu::map<std::string, std::string>
 UserManager::user_parser(const std::string &input) {
   sjtu::map<std::string, std::string> info;

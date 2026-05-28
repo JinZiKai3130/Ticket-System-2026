@@ -33,20 +33,6 @@ class UserManager {
 
   bool check_privilege(const std::string &);
 
-  void add_user_parser(const std::string input, std::string &cur_username,
-                       std::string &username, std::string &password,
-                       std::string &name, std::string &mail, int &privilege);
-
-  void login_parser(const std::string input, std::string &username,
-                    std::string &password);
-
-  void query_parser(const std::string input, std::string &cur_username,
-                    std::string &target_username);
-
-  void modify_parser(const std::string input, std::string &cur_username,
-                     std::string &target_username, std::string &password,
-                     std::string &name, std::string &mail, int &privilege);
-
   sjtu::map<std::string, std::string> user_parser(const std::string &input);
 
   void print_user(const User *cur_user);
