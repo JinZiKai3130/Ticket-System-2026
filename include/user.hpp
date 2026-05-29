@@ -54,4 +54,6 @@ public:
   int modify_profile(const std::string &oper);
 
   std::string get_cur_user();
+
+  void clean(const std::string &);
 };

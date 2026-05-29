@@ -2,10 +2,9 @@
 #include <iostream>
 
 int main() {
-  std::string s;
-  std::cin >> s;
-  std::cout << s.size() << "\n";
-  std::cout << s << "\n";
-
+  char a[100] = "hello";
+  char b[100] = "b";
+  strcpy(a, b);
+  std::cout << strcmp(a, b);
   return 0;
 }

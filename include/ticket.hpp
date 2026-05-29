@@ -41,5 +41,5 @@ public:
 
   void refund_ticket(const std::string &);
 
-  void clean();
+  void clean(const std::string &);
 };

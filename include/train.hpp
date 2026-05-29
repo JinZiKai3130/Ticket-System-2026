@@ -7,7 +7,9 @@ constexpr int MAXSTATION = 101;
 constexpr int MAXTIME = 144000;
 constexpr int MAXDAY = 100; // 30 + 31 + 31 + 7 = 99
 
-struct train {
+struct Train {
+  // 下标说明：车站为0-(MAXSTATION - 1)
+  //          所有区间的性质均跟着后方的点
   char id[21];
   int station_number;
   char station_name[MAXSTATION][31]; // 0 - (MAXSTATION - 1)
@@ -23,38 +25,68 @@ struct train {
   // 第二个量表示出发的站点，具体的下标范围见后方
   // 第一个量表示距离saledate的日期，以确保是哪一天发车的车次
 
-  bool operator<(const train &other) { return strcmp(id, other.id) < 0; }
+  bool operator<(const Train &other) { return strcmp(id, other.id) < 0; }
 };
 
 struct route_to_id {
-  char route[63];
+  char route[65];
   char id[21];
+
+  bool operator<(const route_to_id &other) {
+    if (strcmp(route, other.route) == 0) {
+      return strcmp(id, other.id) < 0;
+    } else
+      return strcmp(route, other.route) < 0;
+  }
+
+  route_to_id(const std::string &r, const std::string &train_id) {
+    strcpy(route, r.c_str());
+    strcpy(id, train_id.c_str());
+  }
 };
 
 struct station_to_id {
   char station[31];
   char id[21];
+
+  bool operator<(const station_to_id &other) {
+    if (strcmp(station, other.station) == 0) {
+      return strcmp(id, other.id) < 0;
+    } else
+      return strcmp(station, other.station) < 0;
+  }
+
+  station_to_id(const std::string &st, const std::string &train_id) {
+    strcpy(station, st.c_str());
+    strcpy(id, train_id.c_str());
+  }
 };
 
 class TrainManager {
-  BPT<train> id_train;
+  BPT<Train> id_train;
   BPT<route_to_id> route_id;
   BPT<station_to_id> station_id;
   sjtu::map<std::string, std::string> train_parser(const std::string &);
 
+  int time_to_int(const std::string &);
+
+  int date_to_int(const std::string &);
+
+  void parse_string(const std::string &, std::string (&)[MAXSTATION]);
+
 public:
-  TrainManager(const string &file_name_1, const string &file_name_2,
-               const string &file_name_3);
+  TrainManager(const std::string &file_name_1, const std::string &file_name_2,
+               const std::string &file_name_3);
 
-  void add_train(const string &);
+  int add_train(const std::string &);
 
-  void delete_train(const string &);
+  int delete_train(const std::string &);
 
-  void release_train(const string &);
+  int release_train(const std::string &);
 
-  void query_train(const string &);
+  int query_train(const std::string &);
 
-  void query_ticket(const string &);
+  int query_ticket(const std::string &);
 
   // num 表示购票/退票数量
   void successful_ticket_purchase(const char *id, const int &num,
@@ -62,11 +94,11 @@ public:
                                   const int &start_station,
                                   const int &end_station);
 
-  void query_transfer(const string &);
+  int query_transfer(const std::string &);
 
   // 此处refund结束后要处理候补的可能
   void refund(const char *id, const int &num, const int &departure_day,
               const int &start_station, const int &end_station);
 
-  void clean();
+  void clean(const std::string &);
 };

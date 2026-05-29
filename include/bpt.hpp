@@ -7,7 +7,6 @@
 using std::fstream;
 using std::ifstream;
 using std::ofstream;
-using std::string;
 
 template <typename T> class shared_ptr {
 public:
@@ -80,13 +79,13 @@ template <typename T> shared_ptr<T> make_shared(const T &arg) {
 template <typename T, int info_len = 2> class MemoryRiver {
 private:
   fstream file;
-  string file_name;
+  std::string file_name;
   int sizeofT = sizeof(T);
 
 public:
   MemoryRiver() = default;
 
-  MemoryRiver(const string &file_name) : file_name(file_name) {}
+  MemoryRiver(const std::string &file_name) : file_name(file_name) {}
 
   ~MemoryRiver() {
     if (file.is_open())
@@ -94,7 +93,7 @@ public:
   }
 
   // 初始化为新文件（覆盖原内容）
-  void initialise(string FN = "") {
+  void initialise(std::string FN = "") {
     if (FN != "")
       file_name = FN;
     if (file.is_open())
@@ -106,7 +105,7 @@ public:
     file.close();
   }
 
-  void open_existing(const string &FN) {
+  void open_existing(const std::string &FN) {
     file_name = FN;
     if (file.is_open())
       file.close();
@@ -230,6 +229,8 @@ private:
 public:
   int head;
   int root;
+
+  void clean(const std::string &str) { tree_node.initialise(str); }
 
   int get_node_size(const int &pos) const {
     Node cur;

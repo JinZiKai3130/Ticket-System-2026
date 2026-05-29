@@ -2,7 +2,7 @@
 // #include "../include/map.hpp"
 #include <sstream>
 
-bool UserManager::check_login(const string &username, int &offset) {
+bool UserManager::check_login(const std::string &username, int &offset) {
   for (int i = 0; i < user_stack.size(); i++) {
     if (strcmp(user_stack[i].username, username.c_str()) == 0) {
       offset = i;
@@ -335,3 +335,5 @@ int UserManager::modify_profile(const std::string &oper) {
 std::string UserManager::get_cur_user() {
   return user_stack[user_stack.size() - 1].username;
 }
+
+void UserManager::clean(const std::string &str) { user_info.clean(str); }
