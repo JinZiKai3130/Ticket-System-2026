@@ -145,7 +145,6 @@ public:
     ensure_open();
     file.seekp((n - 1) * sizeof(int), std::ios::beg);
     file.write(reinterpret_cast<const char *>(&tmp), sizeof(int));
-    // 无需 close，可根据需要 flush
   }
 
   // 在文件末尾写入对象t，返回写入位置索引
@@ -256,7 +255,7 @@ public:
     }
   }
 
-  bool findinterval(const int &pos, const index_value &target, int *vec,
+  bool findinterval(const int &pos, const index_value &target, T *vec,
                     int &num) {
     Node cur_node;
     tree_node.read(cur_node, pos);
