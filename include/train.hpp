@@ -78,6 +78,11 @@ struct AvailableTicket {
   char id[21];
 };
 
+struct TransferTicket {
+  AvailableTicket ticket1;
+  AvailableTicket ticket2;
+};
+
 struct ComparePriceAsc {
   bool operator()(const AvailableTicket &a, const AvailableTicket &b) const {
     if (a.price == b.price) {
@@ -136,16 +141,14 @@ public:
   void query_ticket(const std::string &);
 
   // num 表示购票/退票数量
-  void successful_ticket_purchase(const char *id, const int &num,
-                                  const int &departure_day,
-                                  const int &start_station,
-                                  const int &end_station);
+  void successful_ticket_purchase(const char *, const int &, const int &,
+                                  const int &, const int &);
 
   int query_transfer(const std::string &);
 
   // 此处refund结束后要处理候补的可能
-  void refund(const char *id, const int &num, const int &departure_day,
-              const int &start_station, const int &end_station);
+  void refund_ticket(const char *id, const int &num, const int &departure_day,
+                     const int &start_station, const int &end_station);
 
   void clean(const std::string &);
 };
