@@ -1,12 +1,15 @@
 #pragma once
 #include "bpt.hpp"
 #include "map.hpp"
+#include "priority_queue.hpp"
 #include <cstring>
 #include <string>
 
 constexpr int MAXSTATION = 101;
 constexpr int MAXTIME = 144000;
 constexpr int MAXDAY = 100; // 30 + 31 + 31 + 7 = 99
+constexpr int MAXTRAIN = 1e4 + 5;
+constexpr int MAXSEAT = 1e5 + 5;
 
 struct Train {
   // 下标说明：车站为0-(MAXSTATION - 1)
@@ -40,6 +43,8 @@ struct route_to_id {
       return strcmp(route, other.route) < 0;
   }
 
+  route_to_id() = default;
+
   route_to_id(const std::string &r, const std::string &train_id) {
     strcpy(route, r.c_str());
     strcpy(id, train_id.c_str());
@@ -57,9 +62,37 @@ struct station_to_id {
       return strcmp(station, other.station) < 0;
   }
 
+  station_to_id() = default;
+
   station_to_id(const std::string &st, const std::string &train_id) {
     strcpy(station, st.c_str());
     strcpy(id, train_id.c_str());
+  }
+};
+
+struct AvailableTicket {
+  int price;
+  int time;
+  int date_offset;
+  int start_index, end_index;
+  char id[21];
+};
+
+struct ComparePriceAsc {
+  bool operator()(const AvailableTicket &a, const AvailableTicket &b) const {
+    if (a.price == b.price) {
+      return std::strcmp(a.id, b.id) > 0;
+    }
+    return a.price > b.price;
+  }
+};
+
+struct CompareTimeAsc {
+  bool operator()(const AvailableTicket &a, const AvailableTicket &b) const {
+    if (a.time == b.time) {
+      return std::strcmp(a.id, b.id) > 0;
+    }
+    return a.time > b.time;
   }
 };
 
@@ -85,6 +118,9 @@ class TrainManager {
 
   void print_train(const Train &, const int &);
 
+  void print_ticket(const Train &, const int &, const std::string &,
+                    const std::string &, const int &, const int &);
+
 public:
   TrainManager(const std::string &file_name_1, const std::string &file_name_2,
                const std::string &file_name_3);
@@ -97,7 +133,7 @@ public:
 
   int query_train(const std::string &);
 
-  int query_ticket(const std::string &);
+  void query_ticket(const std::string &);
 
   // num 表示购票/退票数量
   void successful_ticket_purchase(const char *id, const int &num,

@@ -123,6 +123,22 @@ void TrainManager::print_train(const Train &cur_train, const int &number) {
   }
 }
 
+void TrainManager::print_ticket(const Train &cur_train, const int &date_offset,
+                                const std::string &start_station,
+                                const std::string &end_station,
+                                const int &start_index, const int &end_index) {
+  std::cout << cur_train.id << " " << start_station << " "
+            << get_abs_time(cur_train.departure[date_offset][start_index])
+            << " -> " << end_station << " "
+            << cur_train.arrival[date_offset][end_index] << " "
+            << cur_train.price[end_index] - cur_train.price[start_index] << " ";
+  int ticket_num = MAXSEAT;
+  for (int i = start_index + 1; i <= end_index; i++) {
+    ticket_num = std::min(ticket_num, cur_train.left_ticket[date_offset][i]);
+  }
+  std::cout << ticket_num << "\n";
+}
+
 TrainManager::TrainManager(const std::string &file_name_1,
                            const std::string &file_name_2,
                            const std::string &file_name_3) {
@@ -140,7 +156,6 @@ int TrainManager::add_train(const std::string &str) {
   std::strcpy(new_route.value.id, info["-i"].c_str());
   std::strcpy(new_station.value.id, info["-i"].c_str());
   std::strcpy(new_train.index, info["-i"].c_str());
-  std::strcpy(new_train.value.id, info["-i"].c_str());
 
   // 如果有这个id，则返回-1
   Train vec[3];
@@ -149,6 +164,8 @@ int TrainManager::add_train(const std::string &str) {
   if (num != 0) { // 如果id已经存在
     return -1;
   }
+
+  std::strcpy(new_train.value.id, info["-i"].c_str());
 
   new_train.value.station_number = std::stoi(info["-n"]);
   new_train.value.totoal_seat = std::stoi(info["-m"]);
@@ -234,7 +251,6 @@ int TrainManager::delete_train(const std::string &str) {
   std::strcpy(target_route.value.id, info["-i"].c_str());
   std::strcpy(target_station.value.id, info["-i"].c_str());
   std::strcpy(target_train.index, info["-i"].c_str());
-  std::strcpy(target_train.value.id, info["-i"].c_str());
 
   // 先找到这个车
   Train vec[3];
@@ -270,7 +286,6 @@ int TrainManager::release_train(const std::string &str) {
   sjtu::map<std::string, std::string> info = train_parser(str);
   BPT<Train>::index_value target_train;
   std::strcpy(target_train.index, info["-i"].c_str());
-  std::strcpy(target_train.value.id, info["-i"].c_str());
 
   Train vec[3];
   int num = 0;
@@ -294,7 +309,6 @@ int TrainManager::query_train(const std::string &str) {
   BPT<Train>::index_value target_train;
 
   std::strcpy(target_train.index, info["-i"].c_str());
-  std::strcpy(target_train.value.id, info["-i"].c_str());
 
   Train vec[3];
   int num = 0;
@@ -317,16 +331,103 @@ int TrainManager::query_train(const std::string &str) {
   return 0;
 }
 
-int TrainManager::query_ticket(const std::string &str) {
+void TrainManager::query_ticket(const std::string &str) {
   sjtu::map<std::string, std::string> info = train_parser(str);
 
-  std::string the_route = info["-s"] + info["-d"];
+  bool is_by_cost = (info["-p"] == "cost");
+
+  std::string the_route = info["-s"] + info["-t"];
   BPT<route_to_id>::index_value target_route;
 
   strcpy(target_route.index, the_route.c_str());
-  strcpy(target_route.value.route, the_route.c_str());
 
-  return 0;
+  route_to_id vec_route[MAXTRAIN];
+  int route_num = 0;
+  route_id.findinterval(route_id.root, target_route, vec_route, route_num);
+  if (route_num == 0) { // 没有这个车
+    std::cout << "0\n";
+    return;
+  }
+
+  sjtu::priority_queue<AvailableTicket, ComparePriceAsc> queue_cost;
+  sjtu::priority_queue<AvailableTicket, CompareTimeAsc> queue_time;
+  for (int i = 0; i < route_num; i++) {
+    Train vec[3];
+    BPT<Train>::index_value target_train;
+    strcpy(target_train.index, vec_route[i].id);
+    int train_num = 0;
+    id_train.findinterval(id_train.root, target_train, vec, train_num);
+
+    Train &cur_train = vec[0];
+    int start_station_offset = 0;
+    int end_station_offset = 0;
+
+    for (int j = 0; j < cur_train.station_number; j++) {
+      if (strcmp(info["-s"].c_str(), cur_train.station_name[j]) == 0) {
+        start_station_offset = j;
+        continue;
+      }
+      if (strcmp(info["-t"].c_str(), cur_train.station_name[j]) == 0) {
+        end_station_offset = j;
+        break;
+      }
+    }
+
+    // 这里确定是否在sale date区域内
+    // 对于售票中的每一趟车，都进行一下查找 i.e.枚举始发站发车日期的下标
+    for (int j = 0; j <= cur_train.sale_end - cur_train.sale_start; j++) {
+      std::string tmp_string =
+          get_abs_time(cur_train.departure[j][start_station_offset]);
+      tmp_string.resize(5);
+
+      if (strcmp(tmp_string.c_str(), info["-d"].c_str()) == 0) {
+        // 这趟车可以进入priority_queue
+        AvailableTicket tmp;
+        strcpy(tmp.id, cur_train.id);
+        tmp.price = cur_train.price[end_station_offset] -
+                    cur_train.price[start_station_offset];
+        tmp.time = cur_train.arrival[j][end_station_offset] -
+                   cur_train.departure[j][start_station_offset];
+        tmp.date_offset = j;
+        tmp.start_index = start_station_offset;
+        tmp.end_index = end_station_offset;
+        if (is_by_cost) {
+          queue_cost.push(tmp);
+        } else {
+          queue_time.push(tmp);
+        }
+        break; // 一个id的车，最多满足一次（每日一班车）
+      }
+    }
+  }
+
+  std::cout << std::max(queue_cost.size(), queue_time.size()) << "\n";
+  while (!queue_cost.empty() || !queue_time.empty()) {
+    Train vec[3];
+    BPT<Train>::index_value target_train;
+    int train_num = 0;
+    if (is_by_cost) {
+      strcpy(target_train.index, queue_cost.top().id);
+      id_train.findinterval(id_train.root, target_train, vec, train_num);
+
+      Train &cur_train = vec[0];
+
+      print_ticket(cur_train, queue_cost.top().date_offset, info["-s"],
+                   info["-t"], queue_cost.top().start_index,
+                   queue_cost.top().end_index);
+      queue_cost.pop();
+    } else {
+      strcpy(target_train.index, queue_time.top().id);
+      id_train.findinterval(id_train.root, target_train, vec, train_num);
+
+      Train &cur_train = vec[0];
+
+      print_ticket(cur_train, queue_time.top().date_offset, info["-s"],
+                   info["-t"], queue_time.top().start_index,
+                   queue_time.top().end_index);
+      queue_time.pop();
+    }
+  }
 }
 
 // num 表示购票/退票数量
