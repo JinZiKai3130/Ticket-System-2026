@@ -1,4 +1,5 @@
 #include "../include/train.hpp"
+#include "../include/priority_queue.hpp"
 #include <cstring>
 #include <sstream>
 #include <string>
