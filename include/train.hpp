@@ -2,6 +2,7 @@
 #include "bpt.hpp"
 #include "map.hpp"
 #include <cstring>
+#include <string>
 
 constexpr int MAXSTATION = 101;
 constexpr int MAXTIME = 144000;
@@ -70,9 +71,19 @@ class TrainManager {
 
   int time_to_int(const std::string &);
 
-  int date_to_int(const std::string &);
+  int date_to_day_index(const std::string &);
+
+  std::string to_2_digit_string(const int &);
+
+  std::string int_to_time(const int &);
+
+  std::string day_index_to_day(const int &);
+
+  std::string get_abs_time(const int &);
 
   void parse_string(const std::string &, std::string (&)[MAXSTATION]);
+
+  void print_train(const Train &, const int &);
 
 public:
   TrainManager(const std::string &file_name_1, const std::string &file_name_2,

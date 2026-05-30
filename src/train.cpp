@@ -28,7 +28,7 @@ int TrainManager::time_to_int(const std::string &str) {
   return std::stoi(hour) * 60 + std::stoi(minute);
 }
 
-int TrainManager::date_to_int(const std::string &str) {
+int TrainManager::date_to_day_index(const std::string &str) {
   std::string month = "";
   std::string day = "";
   month += str[0];
@@ -48,6 +48,51 @@ int TrainManager::date_to_int(const std::string &str) {
   return result;
 }
 
+std::string TrainManager::to_2_digit_string(const int &cur) {
+  if (cur < 10) {
+    return "0" + std::to_string(cur);
+  } else
+    return std::to_string(cur);
+}
+
+std::string TrainManager::int_to_time(const int &cur_num) {
+  int time_in_day = cur_num % DAY_MINUTE;
+  int hour = time_in_day / 60;
+  int minute = time_in_day % 60;
+  return to_2_digit_string(hour) + ":" + to_2_digit_string(minute);
+}
+
+std::string TrainManager::day_index_to_day(const int &cur_num) {
+  int month, day;
+  int number = cur_num;
+  std::string result = "";
+  if (cur_num <= 30) {
+    result += "06";
+  } else if (cur_num <= 61) {
+    result += "07";
+    number -= 30;
+  } else if (cur_num <= 92) {
+    result += "08";
+    number -= 61;
+  } else {
+    result += "09";
+    number -= 92;
+  }
+  result += "-" + to_2_digit_string(number);
+  return result;
+}
+
+std::string TrainManager::get_abs_time(const int &cur_num) {
+  std::string result;
+  if (cur_num == 0) {
+    return "xx-xx xx:xx";
+  }
+  result += day_index_to_day(cur_num / DAY_MINUTE);
+  result += " ";
+  result += int_to_time(cur_num);
+  return result;
+}
+
 void TrainManager::parse_string(const std::string &input,
                                 std::string (&output)[MAXSTATION]) {
   if (input == "_") {
@@ -63,6 +108,21 @@ void TrainManager::parse_string(const std::string &input,
   }
 }
 
+// 这里的number参数表示第几天的train
+void TrainManager::print_train(const Train &cur_train, const int &number) {
+  std::cout << cur_train.id << " " << cur_train.type;
+  for (int i = 0; i < cur_train.station_number; i++) {
+    bool flag = (cur_train.station_number - 1 != i);
+    std::cout << cur_train.station_name[i] << " "
+              << get_abs_time(cur_train.arrival[number][i]) << " -> "
+              << get_abs_time(cur_train.departure[number][i]) << " "
+              << cur_train.price[i] << " " // price本身就是前缀和数组
+              << (flag ? "x"
+                       : std::to_string(cur_train.left_ticket[number][i + 1]))
+              << "\n"; // 这里没有release时应该自动是满票的状态
+  }
+}
+
 TrainManager::TrainManager(const std::string &file_name_1,
                            const std::string &file_name_2,
                            const std::string &file_name_3) {
@@ -70,20 +130,7 @@ TrainManager::TrainManager(const std::string &file_name_1,
   route_id.init(file_name_2);
   station_id.init(file_name_3);
 }
-/*
--i -n -m -s -p -x -t -o -d -y
 
-说明
-
-添加 <trainID> 为 -i，<stationNum> 为 -n，<seatNum> 为 -m，<stations> 为
--s，<prices> 为 -p，<startTime> 为 -x，<travelTimes> 为 -t，<stopoverTimes> 为
--o，<saleDate> 为 -d，<type> 为 -y 的车次。 由于 -s、-p、-t、-o 和 -d
-由多个值组成，输入时两个值之间以 | 隔开（仍是一个不含空格的字符串）。
-
-输入保证火车的座位数大于 0,站的数量不少于 2 不多于 100，且如果火车只有两站 -o
-后的参数用下划线代替（见举例2）,且火车不会经过同一个站两次。 如果 <trainID>
-已经存在则添加失败。
-*/
 int TrainManager::add_train(const std::string &str) {
   sjtu::map<std::string, std::string> info = train_parser(str);
   BPT<Train>::index_value new_train;
@@ -135,8 +182,9 @@ int TrainManager::add_train(const std::string &str) {
 
   std::string start_day = info["-d"].substr(0, 5);
   std::string end_day = info["-d"].substr(6, 5);
-  int &start_day_num = new_train.value.sale_start = date_to_int(start_day);
-  int &end_day_num = new_train.value.sale_end = date_to_int(end_day);
+  int &start_day_num = new_train.value.sale_start =
+      date_to_day_index(start_day);
+  int &end_day_num = new_train.value.sale_end = date_to_day_index(end_day);
   new_train.value.departure[0][0] =
       time_to_int(info["-x"]) + start_day_num * DAY_MINUTE;
 
@@ -243,11 +291,41 @@ int TrainManager::release_train(const std::string &str) {
 
 int TrainManager::query_train(const std::string &str) {
   sjtu::map<std::string, std::string> info = train_parser(str);
+  BPT<Train>::index_value target_train;
+
+  std::strcpy(target_train.index, info["-i"].c_str());
+  std::strcpy(target_train.value.id, info["-i"].c_str());
+
+  Train vec[3];
+  int num = 0;
+  id_train.findinterval(id_train.root, target_train, vec, num);
+  if (num != 1) { // 如果找到的数量不为1
+    return -1;
+  }
+
+  Train &cur_train = vec[0];
+  if (!cur_train.is_released) {
+    return -1;
+  }
+  std::string &query_date = info["-d"];
+  int date_index = date_to_day_index(query_date);
+  if (date_index < cur_train.sale_start || date_index > cur_train.sale_end) {
+    return -1;
+  } // 如果不在销售区间内
+
+  print_train(cur_train, date_index - cur_train.sale_start);
   return 0;
 }
 
 int TrainManager::query_ticket(const std::string &str) {
   sjtu::map<std::string, std::string> info = train_parser(str);
+
+  std::string the_route = info["-s"] + info["-d"];
+  BPT<route_to_id>::index_value target_route;
+
+  strcpy(target_route.index, the_route.c_str());
+  strcpy(target_route.value.route, the_route.c_str());
+
   return 0;
 }
 
