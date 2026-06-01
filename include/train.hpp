@@ -1,6 +1,7 @@
 #pragma once
 #include "bpt.hpp"
 #include "map.hpp"
+#include "time.cpp"
 #include <cstring>
 #include <string>
 
@@ -106,18 +107,6 @@ class TrainManager {
   BPT<station_to_id> station_id;
   sjtu::map<std::string, std::string> train_parser(const std::string &);
 
-  int time_to_int(const std::string &);
-
-  int date_to_day_index(const std::string &);
-
-  std::string to_2_digit_string(const int &);
-
-  std::string int_to_time(const int &);
-
-  std::string day_index_to_day(const int &);
-
-  std::string get_abs_time(const int &);
-
   void parse_string(const std::string &, std::string (&)[MAXSTATION]);
 
   void print_train(const Train &, const int &);
@@ -149,5 +138,5 @@ public:
   void refund_ticket(const char *id, const int &num, const int &departure_day,
                      const int &start_station, const int &end_station);
 
-  void clean(const std::string &);
+  void clean(const std::string &, const std::string &, const std::string &);
 };
