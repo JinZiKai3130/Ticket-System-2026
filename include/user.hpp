@@ -6,17 +6,18 @@
 
 class UserManager {
   struct User {
-    char username[21];
+    char username[21]{};
     char password[31];
     char name[16];
     char mail[31];
     int privilege;
 
     bool operator<(const User &other) {
-      if (strcmp(username, other.username) == 0) {
-        return privilege < other.privilege;
-      }
       return (strcmp(username, other.username) < 0);
+    }
+
+    bool operator==(const User &other) {
+      return strcmp(username, other.username) == 0;
     }
   };
 

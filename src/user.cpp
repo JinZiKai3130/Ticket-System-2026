@@ -174,17 +174,16 @@ int UserManager::add_user(const std::string &oper) {
   // 首先，查找是否已有username，返回-1
   BPT<User>::index_value to_be_inserted;
   strcpy(to_be_inserted.index, info["-u"].c_str());
-  strcpy(to_be_inserted.value.username, info["-u"].c_str());
-  strcpy(to_be_inserted.value.mail, info["-m"].c_str());
-  strcpy(to_be_inserted.value.name, info["-n"].c_str());
-  strcpy(to_be_inserted.value.password, info["-p"].c_str());
-  to_be_inserted.value.privilege = -1;
   User vec[3];
   int num = 0;
   user_info.findinterval(user_info.root, to_be_inserted, vec, num);
   if (num != 0) {
     return -1;
   }
+  strcpy(to_be_inserted.value.username, info["-u"].c_str());
+  strcpy(to_be_inserted.value.mail, info["-m"].c_str());
+  strcpy(to_be_inserted.value.name, info["-n"].c_str());
+  strcpy(to_be_inserted.value.password, info["-p"].c_str());
   // 然后实现add，返回0
   to_be_inserted.value.privilege = new_priv;
   user_info.insert(to_be_inserted);
@@ -203,12 +202,12 @@ int UserManager::login(const std::string &oper) {
     return -1;
   }
   BPT<User>::index_value to_be_logged_in;
+  strcpy(to_be_logged_in.index, info["-u"].c_str());
   User vec[3];
   int num = 0;
   user_info.findinterval(user_info.root, to_be_logged_in, vec, num);
-  if (num != 1 ||
-      vec[1].password !=
-          info["-p"]) { // 如果当前没有这个用户，或者和password不匹配
+  if (num != 1 || vec[1].password != info["-p"]) {
+    // 如果当前没有这个用户，或者和password不匹配
     return -1;
   }
   user_stack.push_back(vec[1]);
@@ -235,14 +234,8 @@ int UserManager::logout(const std::string &oper) {
 
 int UserManager::query_profile(const std::string &oper) {
   sjtu::map<std::string, std::string> info = user_parser(oper);
-  if (info.size() != 2) {
-    return -1;
-  }
   auto cur_user_iterator = info.find("-c");
   auto user_iterator = info.find("-u");
-  if (user_iterator == info.end() || cur_user_iterator == info.end()) {
-    return -1;
-  }
   int offset;
   if (!check_login(info["-c"], offset)) { // 未登录
     return -1;
@@ -252,80 +245,50 @@ int UserManager::query_profile(const std::string &oper) {
   User vec[3];
   BPT<User>::index_value target;
   strcpy(target.index, info["-u"].c_str());
-  strcpy(target.value.username, info["-u"].c_str());
-  target.value.privilege = -1;
   int num = 0;
   user_info.findinterval(user_info.root, target, vec, num);
   if (num != 1) { // 不存在这个用户
     return -1;
   }
-  if (cur_user.username == info["-u"] ||
-      cur_user.privilege > vec[1].privilege) {
-    print_user(&cur_user);
-    return 0;
-  }
-  return -1;
+  print_user(&cur_user);
+  return 0;
 }
 
 int UserManager::modify_profile(const std::string &oper) {
   sjtu::map<std::string, std::string> info = user_parser(oper);
-  if (info.size() < 2 || info.size() > 6) {
-    return -1;
-  }
-  auto cur_user_iterator = info.find("-c");
-  auto user_iterator = info.find("-u");
   auto password_iterator = info.find("-p");
   auto name_iterator = info.find("-n");
   auto mail_iterator = info.find("-m");
   auto privilege = info.find("-g");
-  if (user_iterator == info.end() || cur_user_iterator == info.end()) {
-    return -1;
-  }
   int offset;
   if (!check_login(info["-c"], offset)) { // 未登录
     return -1;
   }
 
   User &cur_user = user_stack[offset];
-  User vec[3], copy_of_vec1;
+  User vec[3];
   BPT<User>::index_value target;
   strcpy(target.index, info["-u"].c_str());
-  strcpy(target.value.username, info["-u"].c_str());
-  target.value.privilege = -1;
   int num = 0;
   user_info.findinterval(user_info.root, target, vec, num);
   if (num != 1) { // 不存在这个用户
     return -1;
   }
-  copy_of_vec1 = vec[1];
   if (cur_user.username == info["-u"] ||
       cur_user.privilege > vec[1].privilege) { // 有编辑的权限
-    if (password_iterator != info.end()) {     // 是否有修改单项
-      if (check_password(info["-p"]))
-        strcpy(vec[1].password, info["-p"].c_str());
-      else
-        return -1;
+    user_info.remove(BPT<User>::index_value(vec[1].username, vec[1]));
+    if (password_iterator != info.end()) { // 是否有修改单项
+      strcpy(vec[1].password, info["-p"].c_str());
     }
     if (name_iterator != info.end()) {
-      if (check_name(info["-n"]))
-        strcpy(vec[1].name, info["-n"].c_str());
-      else
-        return -1;
+      strcpy(vec[1].name, info["-n"].c_str());
     }
     if (mail_iterator != info.end()) {
-      if (check_mail(info["-m"]))
-        strcpy(vec[1].mail, info["-m"].c_str());
-      else
-        return -1;
+      strcpy(vec[1].mail, info["-m"].c_str());
     }
     if (privilege != info.end()) {
-      if (check_privilege(info["-g"]))
-        vec[1].privilege = std::stoi(info["-g"]);
-      else
-        return -1;
+      vec[1].privilege = std::stoi(info["-g"]);
     }
-    user_info.remove(
-        BPT<User>::index_value(copy_of_vec1.username, copy_of_vec1));
     user_info.insert(BPT<User>::index_value(vec[1].username, vec[1]));
     return 0;
   }

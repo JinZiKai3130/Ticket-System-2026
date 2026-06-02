@@ -29,27 +29,31 @@ int main() {
       std::cout << "bye\n";
       break;
     } else if (oper == "add_user") {
-      usermanager.add_user(input);
+      std::cout << usermanager.add_user(input) << "\n";
     } else if (oper == "login") {
-      usermanager.login(input);
+      std::cout << usermanager.login(input) << "\n";
     } else if (oper == "logout") {
-      usermanager.logout(input);
+      std::cout << usermanager.logout(input) << "\n";
     } else if (oper == "query_profile") {
-      usermanager.query_profile(input);
+      std::cout << usermanager.query_profile(input) << "\n";
     } else if (oper == "modify_profile") {
-      usermanager.modify_profile(input);
+      std::cout << usermanager.modify_profile(input) << "\n";
     } else if (oper == "add_train") {
-      trainmanager.add_train(input);
+      std::cout << trainmanager.add_train(input) << "\n";
     } else if (oper == "delete_train") {
-      trainmanager.delete_train(input);
+      std::cout << trainmanager.delete_train(input) << "\n";
     } else if (oper == "release_train") {
-      trainmanager.release_train(input);
+      std::cout << trainmanager.release_train(input) << "\n";
     } else if (oper == "query_train") {
-      trainmanager.query_train(input);
+      if (trainmanager.query_train(input) == -1) {
+        std::cout << "-1\n";
+      }
     } else if (oper == "query_ticket") {
       trainmanager.query_ticket(input);
     } else if (oper == "query_transfer") {
-      trainmanager.query_transfer(input);
+      if (trainmanager.query_transfer(input) == -1) {
+        std::cout << -1 << "\n";
+      }
     } else if (oper == "buy_ticket") {
       sjtu::map<std::string, std::string> info;
       info = ticketmanager.ticket_parser(input);
@@ -74,11 +78,13 @@ int main() {
         trainmanager.successful_ticket_purchase(
             info["-i"].c_str(), std::stoi(info["-n"]), departure_time_index,
             start_station_index, end_station_index);
+        std::cout << total_price << "\n";
       } else {
         if (info.find("-q") != info.end() && info["-q"] == "true") {
           // pending
           ticketmanager.pend_ticket(info, departure_time, arrival_time,
                                     total_price, departure_time_index);
+          std::cout << "queue\n";
         } else {
           std::cout << "-1\n";
         }
@@ -125,6 +131,7 @@ int main() {
                          station_id_file_name);
       ticketmanager.clean(ticket_id_file_name, trainid_time_ticketid_file_name,
                           user_trainid_file_name, number_of_orders);
+      std::cout << "0\n";
     }
   }
   return 0;

@@ -1,7 +1,7 @@
 #pragma once
 #include "bpt.hpp"
 #include "map.hpp"
-#include "time.cpp"
+#include "time.hpp"
 #include <cstring>
 #include <fstream>
 
@@ -23,13 +23,25 @@ struct Ticket {
   bool operator<(const Ticket &other) {
     return strcmp(ticket_id, other.ticket_id) < 0;
   }
+
+  bool operator==(const Ticket &other) {
+    return strcmp(ticket_id, other.ticket_id) == 0;
+  }
 };
 
 struct trainid_time_to_id {
   char trainid_time[41]{};
   char id[11]{};
   bool operator<(const trainid_time_to_id &other) {
+    if (strcmp(trainid_time, other.trainid_time) == 0) {
+      return strcmp(id, other.id) < 0;
+    }
     return strcmp(trainid_time, other.trainid_time) < 0;
+  }
+
+  bool operator==(const trainid_time_to_id &other) {
+    return strcmp(trainid_time, other.trainid_time) == 0 &&
+           strcmp(id, other.id) == 0;
   }
 };
 
@@ -39,9 +51,15 @@ struct UserToId {
 
   bool operator<(const UserToId &other) {
     if (strcmp(username, other.username) == 0) {
+      // 这里按照从后到前的顺序排列，方便直接使用offset寻找
       return strcmp(ticket_id, other.ticket_id) > 0;
     }
     return strcmp(username, other.username) < 0;
+  }
+
+  bool operator==(const UserToId &other) {
+    return strcmp(username, other.username) == 0 &&
+           strcmp(username, other.username) == 0;
   }
 };
 

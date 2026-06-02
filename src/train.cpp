@@ -142,7 +142,7 @@ int TrainManager::add_train(const std::string &str) {
   for (int day_num = 0; day_num <= end_day_num - start_day_num; day_num++) {
     // 每日的初始化
     new_train.value.departure[day_num][0] =
-        new_train.value.departure[0][0] + (day_num)*DAY_MINUTE;
+        new_train.value.departure[0][0] + day_num * DAY_MINUTE;
 
     for (int i = 0; i < new_train.value.station_number - 1; i++) {
       new_train.value.arrival[day_num][i + 1] =

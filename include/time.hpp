@@ -4,7 +4,7 @@
 
 constexpr int DAY_MINUTE = 24 * 60;
 
-int time_to_int(const std::string &str) {
+inline int time_to_int(const std::string &str) {
   std::string hour = "";
   std::string minute = "";
   hour += str[0];
@@ -14,7 +14,7 @@ int time_to_int(const std::string &str) {
   return std::stoi(hour) * 60 + std::stoi(minute);
 }
 
-int date_to_day_index(const std::string &str) {
+inline int date_to_day_index(const std::string &str) {
   std::string month = "";
   std::string day = "";
   month += str[0];
@@ -34,21 +34,21 @@ int date_to_day_index(const std::string &str) {
   return result;
 }
 
-std::string to_2_digit_string(const int &cur) {
+inline std::string to_2_digit_string(const int &cur) {
   if (cur < 10) {
     return "0" + std::to_string(cur);
   } else
     return std::to_string(cur);
 }
 
-std::string int_to_time(const int &cur_num) {
+inline std::string int_to_time(const int &cur_num) {
   int time_in_day = cur_num % DAY_MINUTE;
   int hour = time_in_day / 60;
   int minute = time_in_day % 60;
   return to_2_digit_string(hour) + ":" + to_2_digit_string(minute);
 }
 
-std::string day_index_to_day(const int &cur_num) {
+inline std::string day_index_to_day(const int &cur_num) {
   int month, day;
   int number = cur_num;
   std::string result = "";
@@ -68,7 +68,7 @@ std::string day_index_to_day(const int &cur_num) {
   return result;
 }
 
-std::string get_abs_time(const int &cur_num) {
+inline std::string get_abs_time(const int &cur_num) {
   std::string result;
   if (cur_num == 0) {
     return "xx-xx xx:xx";

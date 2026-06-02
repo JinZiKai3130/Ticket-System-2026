@@ -1,7 +1,7 @@
 #pragma once
 #include "bpt.hpp"
 #include "map.hpp"
-#include "time.cpp"
+#include "time.hpp"
 #include <cstring>
 #include <string>
 
@@ -30,6 +30,7 @@ struct Train {
   // 第一个量表示距离saledate的日期，以确保是哪一天发车的车次
 
   bool operator<(const Train &other) { return strcmp(id, other.id) < 0; }
+  bool operator==(const Train &other) { return strcmp(id, other.id) == 0; }
 };
 
 struct route_to_id {
@@ -39,8 +40,12 @@ struct route_to_id {
   bool operator<(const route_to_id &other) {
     if (strcmp(route, other.route) == 0) {
       return strcmp(id, other.id) < 0;
-    } else
-      return strcmp(route, other.route) < 0;
+    }
+    return strcmp(route, other.route) < 0;
+  }
+
+  bool operator==(const route_to_id &other) {
+    return strcmp(route, other.route) == 0 && strcmp(id, other.id) == 0;
   }
 
   route_to_id() = default;
@@ -58,8 +63,12 @@ struct station_to_id {
   bool operator<(const station_to_id &other) {
     if (strcmp(station, other.station) == 0) {
       return strcmp(id, other.id) < 0;
-    } else
-      return strcmp(station, other.station) < 0;
+    }
+    return strcmp(station, other.station) < 0;
+  }
+
+  bool operator==(const station_to_id &other) {
+    return strcmp(station, other.station) == 0 && strcmp(id, other.id) == 0;
   }
 
   station_to_id() = default;
