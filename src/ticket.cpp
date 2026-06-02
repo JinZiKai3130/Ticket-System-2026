@@ -155,6 +155,68 @@ void TicketManager::refund_ticket(sjtu::map<std::string, std::string> &info,
       BPT<Ticket>::index_value(target_ticketid.c_str(), cur_ticket));
 }
 
+void TicketManager::query_order(sjtu::map<std::string, std::string> &info) {
+  std::string cur_username = info["-u"];
+  BPT<UserToId>::index_value cur_user_to_id;
+  strcpy(cur_user_to_id.index, cur_username.c_str());
+
+  UserToId user_to_id_vec[MAXTICKET];
+  int user_to_id_num = 0;
+  user_id.findinterval(user_id.root, cur_user_to_id, user_to_id_vec,
+                       user_to_id_num);
+  std::cout << user_to_id_num << "\n";
+  for (int i = 1; i <= user_to_id_num; i++) {
+    std::string target_ticketid = user_to_id_vec[i].ticket_id;
+    BPT<Ticket>::index_value target_ticket;
+    strcpy(target_ticket.index, user_to_id_vec[i].ticket_id);
+    Ticket ticket_vec[3];
+    int ticket_num = 0;
+    id_ticket.findinterval(id_ticket.root, target_ticket, ticket_vec,
+                           ticket_num);
+
+    Ticket &cur_ticket = ticket_vec[1];
+    print_ticket(cur_ticket);
+  }
+}
+
+void TicketManager::pend_ticket(sjtu::map<std::string, std::string> &info,
+                                const int &departure_time,
+                                const int &arrival_time, const int &price,
+                                const int &time_index) {
+  std::string &cur_username = info["-u"];
+  std::string &cur_trainid = info["-i"];
+  std::string cur_index = cur_trainid + std::to_string(time_index);
+  BPT<trainid_time_to_id>::index_value to_be_inserted;
+  strcpy(to_be_inserted.index, cur_index.c_str());
+  strcpy(to_be_inserted.value.trainid_time, cur_index.c_str());
+  strcpy(to_be_inserted.value.id, std::to_string(++total_ticket_num).c_str());
+  update_total_ticket_id();
+
+  Ticket cur_ticket;
+  strcpy(cur_ticket.username, info["-u"].c_str());
+  strcpy(cur_ticket.train_id, info["-i"].c_str());
+  cur_ticket.departure_time = departure_time;
+  cur_ticket.arrival_time = arrival_time;
+  cur_ticket.time_index = time_index;
+  strcpy(cur_ticket.start_station, info["-f"].c_str());
+  strcpy(cur_ticket.end_station, info["-t"].c_str());
+  cur_ticket.num = std::stoi(info["-n"]);
+  cur_ticket.price = price;
+  cur_ticket.status = 1;
+  strcpy(cur_ticket.ticket_id, std::to_string(total_ticket_num).c_str());
+
+  BPT<Ticket>::index_value cur_id_ticket;
+  strcpy(cur_id_ticket.index, std::to_string(total_ticket_num).c_str());
+  cur_id_ticket.value = cur_ticket;
+  id_ticket.insert(cur_id_ticket);
+
+  BPT<UserToId>::index_value cur_user_id;
+  strcpy(cur_user_id.index, info["-u"].c_str());
+  strcpy(cur_user_id.value.username, info["-u"].c_str());
+  strcpy(cur_user_id.value.ticket_id, std::to_string(total_ticket_num).c_str());
+  user_id.insert(cur_user_id);
+}
+
 void TicketManager::clean(const std::string &str1, const std::string &str2,
                           const std::string &str3, const std::string &str4) {
   id_ticket.clean(str1);

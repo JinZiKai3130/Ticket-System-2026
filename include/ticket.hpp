@@ -71,9 +71,10 @@ public:
 
   void refund_ticket(sjtu::map<std::string, std::string> &, bool &, bool &);
 
-  void query_ticket(const std::string &);
+  void query_order(sjtu::map<std::string, std::string> &);
 
-  void pend_ticket();
+  void pend_ticket(sjtu::map<std::string, std::string> &, const int &,
+                   const int &, const int &, const int &);
 
   void clean(const std::string &, const std::string &, const std::string &,
              const std::string &);
