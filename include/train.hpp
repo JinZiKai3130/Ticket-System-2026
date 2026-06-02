@@ -29,22 +29,24 @@ struct Train {
   // 第二个量表示出发的站点，具体的下标范围见后方
   // 第一个量表示距离saledate的日期，以确保是哪一天发车的车次
 
-  bool operator<(const Train &other) { return strcmp(id, other.id) < 0; }
-  bool operator==(const Train &other) { return strcmp(id, other.id) == 0; }
+  bool operator<(const Train &other) const { return strcmp(id, other.id) < 0; }
+  bool operator==(const Train &other) const {
+    return strcmp(id, other.id) == 0;
+  }
 };
 
 struct route_to_id {
   char route[65];
   char id[21];
 
-  bool operator<(const route_to_id &other) {
+  bool operator<(const route_to_id &other) const {
     if (strcmp(route, other.route) == 0) {
       return strcmp(id, other.id) < 0;
     }
     return strcmp(route, other.route) < 0;
   }
 
-  bool operator==(const route_to_id &other) {
+  bool operator==(const route_to_id &other) const {
     return strcmp(route, other.route) == 0 && strcmp(id, other.id) == 0;
   }
 
@@ -60,14 +62,14 @@ struct station_to_id {
   char station[31];
   char id[21];
 
-  bool operator<(const station_to_id &other) {
+  bool operator<(const station_to_id &other) const {
     if (strcmp(station, other.station) == 0) {
       return strcmp(id, other.id) < 0;
     }
     return strcmp(station, other.station) < 0;
   }
 
-  bool operator==(const station_to_id &other) {
+  bool operator==(const station_to_id &other) const {
     return strcmp(station, other.station) == 0 && strcmp(id, other.id) == 0;
   }
 

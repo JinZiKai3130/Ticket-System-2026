@@ -12,11 +12,11 @@ class UserManager {
     char mail[31];
     int privilege;
 
-    bool operator<(const User &other) {
+    bool operator<(const User &other) const {
       return (strcmp(username, other.username) < 0);
     }
 
-    bool operator==(const User &other) {
+    bool operator==(const User &other) const {
       return strcmp(username, other.username) == 0;
     }
   };

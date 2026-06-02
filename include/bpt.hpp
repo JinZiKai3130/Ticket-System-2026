@@ -232,13 +232,13 @@ public:
 
   void clean(const std::string &str) { tree_node.initialise(str); }
 
-  int get_node_size(const int &pos) const {
+  int get_node_size(const int &pos) {
     Node cur;
     tree_node.read(cur, pos);
     return cur.count;
   }
 
-  bool empty() const { return (get_node_size(root) == 0); }
+  bool empty() { return (get_node_size(root) == 0); }
 
   void init(std::string the_file_name) {
     ifstream test(the_file_name, std::ios::binary);
