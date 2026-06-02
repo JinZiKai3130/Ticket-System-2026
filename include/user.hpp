@@ -24,8 +24,6 @@ class UserManager {
 
   BPT<User> user_info;
 
-  bool check_login(const std::string &, int &);
-
   bool check_username(const std::string &);
 
   bool check_password(const std::string &);
@@ -42,6 +40,8 @@ class UserManager {
 
 public:
   UserManager(const std::string &file_name);
+
+  bool check_login(const std::string &, int &);
 
   int add_user(const std::string &oper);
 

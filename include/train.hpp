@@ -138,5 +138,7 @@ public:
   void refund_ticket(const char *id, const int &num, const int &departure_day,
                      const int &start_station, const int &end_station);
 
+  bool check_ticket_enough(sjtu::map<std::string, std::string> &);
+
   void clean(const std::string &, const std::string &, const std::string &);
 };
