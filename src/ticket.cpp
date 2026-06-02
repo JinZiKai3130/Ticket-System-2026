@@ -1,5 +1,6 @@
 #include "../include/ticket.hpp"
 #include <sstream>
+#include <string>
 
 void TicketManager::print_ticket(const Ticket &cur_ticket) {
   if (cur_ticket.status == 0) {
@@ -64,12 +65,14 @@ TicketManager::ticket_parser(const std::string &input) {
 
 void TicketManager::buy_ticket(const sjtu::map<std::string, std::string> &info,
                                const int &departure_time,
-                               const int &arrival_time, const int &price) {
+                               const int &arrival_time, const int &price,
+                               const int &time_index) {
   Ticket cur_ticket;
   strcpy(cur_ticket.username, info["-u"].c_str());
   strcpy(cur_ticket.train_id, info["-i"].c_str());
   cur_ticket.departure_time = departure_time;
   cur_ticket.arrival_time = arrival_time;
+  cur_ticket.time_index = time_index;
   strcpy(cur_ticket.start_station, info["-f"].c_str());
   strcpy(cur_ticket.end_station, info["-t"].c_str());
   cur_ticket.num = std::stoi(info["-n"]);
@@ -91,12 +94,65 @@ void TicketManager::buy_ticket(const sjtu::map<std::string, std::string> &info,
   user_id.insert(cur_user_id);
 }
 
-void TicketManager::refund_ticket(sjtu::map<std::string, std::string> &info) {
+void TicketManager::refund_ticket(sjtu::map<std::string, std::string> &info,
+                                  bool &is_successful, bool &is_pending) {
   const std::string &cur_username = info["-u"];
-  int offset = 0;
+  int offset;
   if (info.find("-n") != info.end()) {
     offset = std::stoi(info["-n"]);
   }
+
+  // 找到ticketid
+  BPT<UserToId>::index_value cur_user_to_id;
+  strcpy(cur_user_to_id.index, cur_username.c_str());
+
+  UserToId user_to_id_vec[MAXTICKET];
+  int user_to_id_num = 0;
+  user_id.findinterval(user_id.root, cur_user_to_id, user_to_id_vec,
+                       user_to_id_num);
+  if (user_to_id_num < offset) {
+    is_successful = 0;
+    return;
+  }
+
+  // 从ticket_id重新标记对应的票据，标记为refund
+  std::string target_ticketid = user_to_id_vec[offset].ticket_id;
+  BPT<Ticket>::index_value target_ticket;
+  strcpy(target_ticket.index, user_to_id_vec[offset].ticket_id);
+
+  Ticket ticket_vec[3];
+  int ticket_num = 0;
+  id_ticket.findinterval(id_ticket.root, target_ticket, ticket_vec, ticket_num);
+
+  Ticket &cur_ticket = ticket_vec[1];
+  if (cur_ticket.status == 2) {
+    is_successful = 0;
+    return;
+  } else if (cur_ticket.status == 1) {
+    is_pending = 1;
+    // 在pending_list中删掉对应的订单
+    std::string pending_index =
+        (cur_ticket.train_id) + std::to_string(cur_ticket.time_index);
+
+    BPT<trainid_time_to_id>::index_value target_pending;
+    strcpy(target_pending.index, pending_index.c_str());
+
+    trainid_time_to_id target_pending_ticket_vec[3];
+    int target_pending_ticket_num = 0;
+    trainid_time_id.findinterval(trainid_time_id.root, target_pending,
+                                 target_pending_ticket_vec,
+                                 target_pending_ticket_num);
+    trainid_time_id.remove(BPT<trainid_time_to_id>::index_value(
+        pending_index.c_str(), target_pending_ticket_vec[1]));
+  } else {
+    is_pending = 0;
+  }
+  is_successful = 1;
+  id_ticket.remove(
+      BPT<Ticket>::index_value(target_ticketid.c_str(), cur_ticket));
+  cur_ticket.status = 2;
+  id_ticket.insert(
+      BPT<Ticket>::index_value(target_ticketid.c_str(), cur_ticket));
 }
 
 void TicketManager::clean(const std::string &str1, const std::string &str2,
