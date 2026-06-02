@@ -69,7 +69,8 @@ public:
   void buy_ticket(const sjtu::map<std::string, std::string> &, const int &,
                   const int &, const int &, const int &);
 
-  void refund_ticket(sjtu::map<std::string, std::string> &, bool &, bool &);
+  void refund_ticket(sjtu::map<std::string, std::string> &, bool &, bool &,
+                     std::string &, int &, int &, std::string &, std::string &);
 
   void query_order(sjtu::map<std::string, std::string> &);
 

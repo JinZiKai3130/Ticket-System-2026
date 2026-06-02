@@ -114,6 +114,9 @@ class TrainManager {
   void print_ticket(const Train &, const int &, const std::string &,
                     const std::string &, const int &, const int &);
 
+  int get_departure_index(const Train &, const std::string &,
+                          const std::string &, int &);
+
 public:
   TrainManager(const std::string &file_name_1, const std::string &file_name_2,
                const std::string &file_name_3);
@@ -135,10 +138,11 @@ public:
   int query_transfer(const std::string &);
 
   // 此处refund结束后要处理候补的可能
-  void refund_ticket(const char *id, const int &num, const int &departure_day,
-                     const int &start_station, const int &end_station);
+  void refund_ticket(const char *, const int &, const int &,
+                     const std::string &, const std::string &);
 
-  bool check_ticket_enough(sjtu::map<std::string, std::string> &);
+  bool check_ticket_enough(sjtu::map<std::string, std::string> &, int &, int &,
+                           int &, int &, int &, int &);
 
   void clean(const std::string &, const std::string &, const std::string &);
 };

@@ -598,6 +598,69 @@ int TrainManager::query_transfer(const std::string &str) {
   return 0;
 }
 
+int TrainManager::get_departure_index(const Train &cur_train,
+                                      const std::string &departure_station,
+                                      const std::string &departure_date,
+                                      int &departure_time) {
+  int station_index = 0;
+  for (int i = 0; i < cur_train.station_number; i++) {
+    if (strcmp(cur_train.station_name[i], departure_station.c_str()) == 0) {
+      station_index = i;
+      break;
+    }
+  }
+
+  for (int i = 0; i <= cur_train.sale_end - cur_train.sale_start; i++) {
+    std::string abs_time = get_abs_time(cur_train.departure[i][station_index]);
+    abs_time.resize(5);
+    if (departure_date == abs_time) {
+      departure_time = cur_train.departure[i][station_index];
+      return i;
+    }
+  }
+}
+
+bool TrainManager::check_ticket_enough(
+    sjtu::map<std::string, std::string> &info, int &departure_time,
+    int &arrival_time, int &price, int &departure_time_index,
+    int &start_station_index, int &end_station_index) {
+  // 首先从start_time找到departure_index
+  Train vec[3];
+  int vec_num = 0;
+  BPT<Train>::index_value target_train;
+  strcpy(target_train.index, info["-i"].c_str());
+  id_train.findinterval(id_train.root, target_train, vec, vec_num);
+
+  Train &cur_train = vec[1];
+
+  std::string &departure_station = info["-f"];
+  std::string &departure_date = info["-d"];
+  departure_time_index = get_departure_index(cur_train, departure_station,
+                                             departure_date, departure_time);
+
+  for (int i = 0; i < cur_train.station_number; i++) {
+    if (strcmp(cur_train.station_name[i], departure_station.c_str()) == 0) {
+      start_station_index = i;
+      continue;
+    }
+    if (strcmp(cur_train.station_name[i], info["-t"].c_str()) == 0) {
+      end_station_index = i;
+      break;
+    }
+  }
+  arrival_time = cur_train.arrival[departure_time_index][end_station_index];
+  // 再从departure_index确定这一段station是否有充足的票
+  int requirement_num = std::stoi(info["-n"]);
+  price =
+      cur_train.price[end_station_index] - cur_train.price[start_station_index];
+  for (int i = start_station_index; i <= end_station_index; i++) {
+    if (cur_train.left_ticket[departure_time_index][i] < requirement_num) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
 // 下面两个函数仅负责处理数据，不进行任何安全检查
 
 // num 表示购票/退票数量
@@ -632,8 +695,8 @@ void TrainManager::successful_ticket_purchase(const char *id,
 // 这个函数仅用于删除，候补的购票逻辑和successful_purchase应当一致
 void TrainManager::refund_ticket(const char *id, const int &ticket_num,
                                  const int &departure_day,
-                                 const int &start_station,
-                                 const int &end_station) {
+                                 const std::string &start_station,
+                                 const std::string &end_station) {
   BPT<Train>::index_value target_train;
 
   std::strcpy(target_train.index, id);
@@ -648,7 +711,19 @@ void TrainManager::refund_ticket(const char *id, const int &ticket_num,
   Train &cur_train = vec[0];
   id_train.remove(BPT<Train>::index_value{id, cur_train});
 
-  for (int i = start_station + 1; i <= end_station; i++) {
+  int start_station_index = 0;
+  int end_station_index = 0;
+  for (int i = 0; i < cur_train.station_number; i++) {
+    if (strcmp(cur_train.station_name[i], start_station.c_str()) == 0) {
+      start_station_index = i;
+      continue;
+    }
+    if (strcmp(cur_train.station_name[i], end_station.c_str()) == 0) {
+      end_station_index = i;
+      break;
+    }
+  }
+  for (int i = start_station_index + 1; i <= end_station_index; i++) {
     cur_train.left_ticket[departure_day][i] += ticket_num;
   }
 

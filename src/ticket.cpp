@@ -95,7 +95,11 @@ void TicketManager::buy_ticket(const sjtu::map<std::string, std::string> &info,
 }
 
 void TicketManager::refund_ticket(sjtu::map<std::string, std::string> &info,
-                                  bool &is_successful, bool &is_pending) {
+                                  bool &is_successful, bool &is_pending,
+                                  std::string &train_id, int &total_ticket_num,
+                                  int &departure_train_index,
+                                  std::string &departure_station,
+                                  std::string &arrival_station) {
   const std::string &cur_username = info["-u"];
   int offset;
   if (info.find("-n") != info.end()) {
@@ -125,6 +129,12 @@ void TicketManager::refund_ticket(sjtu::map<std::string, std::string> &info,
   id_ticket.findinterval(id_ticket.root, target_ticket, ticket_vec, ticket_num);
 
   Ticket &cur_ticket = ticket_vec[1];
+  train_id = cur_ticket.train_id;
+  total_ticket_num = cur_ticket.num;
+  departure_train_index = cur_ticket.time_index;
+  departure_station = cur_ticket.start_station;
+  arrival_station = cur_ticket.end_station;
+
   if (cur_ticket.status == 2) {
     is_successful = 0;
     return;

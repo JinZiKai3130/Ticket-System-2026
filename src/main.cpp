@@ -58,12 +58,27 @@ int main() {
         std::cout << "-1\n";
         continue;
       }
-      if (trainmanager.check_ticket_enough(info)) {
+      int departure_time_index = 0;
+      int departure_time = 0;
+      int arrival_time = 0;
+      int total_price = 0;
+      int start_station_index = 0;
+      int end_station_index = 0;
+      if (trainmanager.check_ticket_enough(
+              info, departure_time, arrival_time, total_price,
+              departure_time_index, start_station_index, end_station_index)) {
         // ticket中buy
+        ticketmanager.buy_ticket(info, departure_time, arrival_time,
+                                 total_price, departure_time_index);
         // train中successful_purchase
+        trainmanager.successful_ticket_purchase(
+            info["-i"].c_str(), std::stoi(info["-n"]), departure_time_index,
+            start_station_index, end_station_index);
       } else {
         if (info.find("-q") != info.end() && info["-q"] == "true") {
           // pending
+          ticketmanager.pend_ticket(info, departure_time, arrival_time,
+                                    total_price, departure_time_index);
         } else {
           std::cout << "-1\n";
         }
@@ -87,14 +102,22 @@ int main() {
       }
       bool is_successful = 1;
       bool is_pending = 0;
-      ticketmanager.refund_ticket(info, is_successful, is_pending);
+      std::string cur_train_id;
+      int ticket_num = 0;
+      int departure_time_index = 0;
+      std::string departure_station_name;
+      std::string arrival_station_name;
+      ticketmanager.refund_ticket(info, is_successful, is_pending, cur_train_id,
+                                  ticket_num, departure_time_index,
+                                  departure_station_name, arrival_station_name);
       if (!is_successful) {
         std::cout << "-1\n";
       }
       if (!is_pending) {
         // realize refund in the train ticket
-        // trainmanager.refund_ticket(const char *id, const int &num, const int
-        // &departure_day, const int &start_station, const int &end_station)
+        trainmanager.refund_ticket(cur_train_id.c_str(), ticket_num,
+                                   departure_time_index, departure_station_name,
+                                   arrival_station_name);
       }
     } else if (oper == "clean") {
       usermanager.clean(user_file_name);
