@@ -76,7 +76,7 @@ void TicketManager::buy_ticket(const sjtu::map<std::string, std::string> &info,
   strcpy(cur_ticket.start_station, info["-f"].c_str());
   strcpy(cur_ticket.end_station, info["-t"].c_str());
   cur_ticket.num = std::stoi(info["-n"]);
-  cur_ticket.price = price;
+  cur_ticket.price = price * cur_ticket.num;
   cur_ticket.status = 0;
   total_ticket_num++;
   update_total_ticket_id();
@@ -211,7 +211,7 @@ void TicketManager::pend_ticket(sjtu::map<std::string, std::string> &info,
   strcpy(cur_ticket.start_station, info["-f"].c_str());
   strcpy(cur_ticket.end_station, info["-t"].c_str());
   cur_ticket.num = std::stoi(info["-n"]);
-  cur_ticket.price = price;
+  cur_ticket.price = price * cur_ticket.num;
   cur_ticket.status = 1;
   strcpy(cur_ticket.ticket_id, std::to_string(total_ticket_num).c_str());
 

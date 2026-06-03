@@ -1,0 +1,9 @@
+rm -f id_Ticket id_Train order_count pending_list route_id station_id train_data username_trainid username_user
+
+cd build && make
+cd..
+./build/TicketManagementSystem < testcases/2.in > testcases/2.ans
+
+
+g++ -std=c++11 -o filecmp compare.cpp
+./filecmp 1.out 1.ans

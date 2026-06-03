@@ -78,6 +78,7 @@ int main() {
               info, departure_time, arrival_time, total_price,
               departure_time_index, start_station_index, end_station_index)) {
         // ticket中buy
+        total_price *= std::stoi(info["-n"]);
         ticketmanager->buy_ticket(info, departure_time, arrival_time,
                                   total_price, departure_time_index);
         // train中successful_purchase
@@ -88,6 +89,7 @@ int main() {
       } else {
         if (info.find("-q") != info.end() && info["-q"] == "true") {
           // pending
+          total_price *= std::stoi(info["-n"]);
           ticketmanager->pend_ticket(info, departure_time, arrival_time,
                                      total_price, departure_time_index);
           std::cout << "queue\n";
