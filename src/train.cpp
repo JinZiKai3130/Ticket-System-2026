@@ -67,8 +67,11 @@ void TrainManager::print_ticket(const Train &cur_train, const int &date_offset,
 TrainManager::TrainManager(const std::string &file_name_1,
                            const std::string &file_name_2,
                            const std::string &file_name_3) {
+  std::cout << "init_id\n";
   id_train.init(file_name_1);
+  std::cout << "init1\n";
   route_id.init(file_name_2);
+  std::cout << "init2\n";
   station_id.init(file_name_3);
 }
 

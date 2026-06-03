@@ -240,12 +240,17 @@ public:
 
   bool empty() { return (get_node_size(root) == 0); }
 
-  void init(std::string the_file_name) {
-    ifstream test(the_file_name, std::ios::binary);
+  void init(const std::string &the_file_name) {
+    std::cerr << "start ifstream\n";
+    fstream test;
+    test.open(the_file_name, std::ios::binary | std::ios::in);
+    std::cout << "end ifstream\n";
     bool exists = test.good();
     test.close();
     if (!exists) {
+      std::cout << "initialize\n";
       tree_node.initialise(the_file_name);
+      std::cout << "end initialize\n";
       Node initial;
       int address = tree_node.write(initial);
       root = address;
@@ -254,6 +259,7 @@ public:
       tree_node.write_info(head, 2);
       return;
     }
+    std::cout << "created a new file\n";
     tree_node.open_existing(the_file_name);
     tree_node.get_info(root, 1);
     tree_node.get_info(head, 2);

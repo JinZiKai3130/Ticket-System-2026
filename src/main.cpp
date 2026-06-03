@@ -17,8 +17,10 @@ int main() {
   std::string oper;
   std::string time_slot;
   UserManager usermanager(user_file_name);
+  std::cout << "here\n";
   TrainManager trainmanager(train_id_file_name, route_id_file_name,
                             station_id_file_name);
+  std::cout << "here\n";
   TicketManager ticketmanager(ticket_id_file_name,
                               trainid_time_ticketid_file_name,
                               user_trainid_file_name, number_of_orders);
