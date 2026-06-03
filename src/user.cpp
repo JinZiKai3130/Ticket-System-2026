@@ -138,9 +138,6 @@ int UserManager::add_user(const std::string &oper) {
   auto mail_iterator = info.find("-m");
   auto privilege = info.find("-g");
   // 输入总体格式不符合
-  if (info.size() != 6) {
-    return -1;
-  }
   if (cur_user_iterator == info.end() || user_iterator == info.end() ||
       password_iterator == info.end() || name_iterator == info.end() ||
       mail_iterator == info.end() || privilege == info.end()) {
@@ -192,13 +189,14 @@ int UserManager::add_user(const std::string &oper) {
 
 int UserManager::login(const std::string &oper) {
   sjtu::map<std::string, std::string> info = user_parser(oper);
-  if (info.size() != 2) {
-    return -1;
-  }
   auto user_iterator = info.find("-u");
   auto password_iterator = info.find("-p");
 
   if (user_iterator == info.end() || password_iterator == info.end()) {
+    return -1;
+  }
+  int offset = -1;
+  if (check_login(info["-u"], offset)) {
     return -1;
   }
   BPT<User>::index_value to_be_logged_in;
@@ -250,8 +248,12 @@ int UserManager::query_profile(const std::string &oper) {
   if (num != 1) { // 不存在这个用户
     return -1;
   }
-  print_user(&cur_user);
-  return 0;
+  if (cur_user.username == info["-u"] ||
+      cur_user.privilege > vec[1].privilege) {
+    print_user(&vec[1]);
+    return 0;
+  }
+  return -1;
 }
 
 int UserManager::modify_profile(const std::string &oper) {
@@ -289,6 +291,7 @@ int UserManager::modify_profile(const std::string &oper) {
     if (privilege != info.end()) {
       vec[1].privilege = std::stoi(info["-g"]);
     }
+    print_user(&vec[1]);
     user_info.insert(BPT<User>::index_value(vec[1].username, vec[1]));
     return 0;
   }

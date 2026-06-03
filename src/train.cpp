@@ -66,47 +66,55 @@ void TrainManager::print_ticket(const Train &cur_train, const int &date_offset,
 
 TrainManager::TrainManager(const std::string &file_name_1,
                            const std::string &file_name_2,
-                           const std::string &file_name_3) {
-  std::cout << "init_id\n";
+                           const std::string &file_name_3,
+                           const std::string &file_name_4) {
   id_train.init(file_name_1);
-  std::cout << "init1\n";
+  std::fstream test;
+  test.open(file_name_4, std::ios::binary | std::ios::in);
+  bool exists = test.good();
+  test.close();
+  if (!exists) {
+    train_data.initialise(file_name_4);
+  } else {
+    train_data.open_existing(file_name_4);
+  }
   route_id.init(file_name_2);
-  std::cout << "init2\n";
   station_id.init(file_name_3);
 }
 
 int TrainManager::add_train(const std::string &str) {
   sjtu::map<std::string, std::string> info = train_parser(str);
-  BPT<Train>::index_value new_train;
+  BPT<TrainRef>::index_value new_train_ref;
   BPT<route_to_id>::index_value new_route;
   BPT<station_to_id>::index_value new_station;
 
   std::strcpy(new_route.value.id, info["-i"].c_str());
   std::strcpy(new_station.value.id, info["-i"].c_str());
-  std::strcpy(new_train.index, info["-i"].c_str());
+  std::strcpy(new_train_ref.index, info["-i"].c_str());
 
   // 如果有这个id，则返回-1
-  Train vec[3];
+  TrainRef vec_ref[3];
   int num = 0;
-  id_train.findinterval(id_train.root, new_train, vec, num);
+  id_train.findinterval(id_train.root, new_train_ref, vec_ref, num);
   if (num != 0) { // 如果id已经存在
     return -1;
   }
 
-  std::strcpy(new_train.value.id, info["-i"].c_str());
+  Train *new_train_ptr = new Train();
+  Train &new_train_data = *new_train_ptr;
+  std::strcpy(new_train_data.id, info["-i"].c_str());
 
-  new_train.value.station_number = std::stoi(info["-n"]);
-  new_train.value.totoal_seat = std::stoi(info["-m"]);
+  new_train_data.station_number = std::stoi(info["-n"]);
+  new_train_data.totoal_seat = std::stoi(info["-m"]);
 
   // 用数组存储station_name
   std::string parsed_station_name[MAXSTATION];
   parse_string(info["-s"], parsed_station_name);
-  for (int i = 0; i < new_train.value.station_number; i++) { // 起点枚举
-    std::strcpy(new_train.value.station_name[i],
-                parsed_station_name[i].c_str());
+  for (int i = 0; i < new_train_data.station_number; i++) { // 起点枚举
+    std::strcpy(new_train_data.station_name[i], parsed_station_name[i].c_str());
     std::strcpy(new_station.index, parsed_station_name[i].c_str());
     std::strcpy(new_station.value.station, parsed_station_name[i].c_str());
-    for (int j = i + 1; j < new_train.value.station_number; j++) { // 终点枚举
+    for (int j = i + 1; j < new_train_data.station_number; j++) { // 终点枚举
       // 保证起点在前，终点在后
       std::string the_route = parsed_station_name[i] + parsed_station_name[j];
       std::strcpy(new_route.index, the_route.c_str());
@@ -119,23 +127,19 @@ int TrainManager::add_train(const std::string &str) {
   // 用前缀和数组price
   std::string parsed_price[MAXSTATION];
   parse_string(info["-p"], parsed_price);
-  new_train.value.price[0] = 0;
-  for (int i = 0; i < new_train.value.station_number - 1; i++) {
-    new_train.value.price[i + 1] =
-        new_train.value.price[i] + std::stoi(parsed_price[i]);
+  new_train_data.price[0] = 0;
+  for (int i = 0; i < new_train_data.station_number - 1; i++) {
+    new_train_data.price[i + 1] =
+        new_train_data.price[i] + std::stoi(parsed_price[i]);
   }
 
   std::string start_day = info["-d"].substr(0, 5);
   std::string end_day = info["-d"].substr(6, 5);
-  int &start_day_num = new_train.value.sale_start =
-      date_to_day_index(start_day);
-  int &end_day_num = new_train.value.sale_end = date_to_day_index(end_day);
-  new_train.value.departure[0][0] =
+  int &start_day_num = new_train_data.sale_start = date_to_day_index(start_day);
+  int &end_day_num = new_train_data.sale_end = date_to_day_index(end_day);
+  new_train_data.departure[0][0] =
       time_to_int(info["-x"]) + start_day_num * DAY_MINUTE;
 
-  //   std::string &travel_time = info["-t"];
-  //   std::string &stop_time = info["-o"];
-  //   int ptr1 = 0, ptr2 = 0; // 在string中的指针
   std::string travel_time[MAXSTATION]{};
   parse_string(info["-t"], travel_time);
   std::string stop_time[MAXSTATION]{};
@@ -144,35 +148,38 @@ int TrainManager::add_train(const std::string &str) {
   // 这里的i对应parser出来的下标
   for (int day_num = 0; day_num <= end_day_num - start_day_num; day_num++) {
     // 每日的初始化
-    new_train.value.departure[day_num][0] =
-        new_train.value.departure[0][0] + day_num * DAY_MINUTE;
+    new_train_data.departure[day_num][0] =
+        new_train_data.departure[0][0] + day_num * DAY_MINUTE;
 
-    for (int i = 0; i < new_train.value.station_number - 1; i++) {
-      new_train.value.arrival[day_num][i + 1] =
-          new_train.value.departure[day_num][i] + std::stoi(travel_time[i]);
+    for (int i = 0; i < new_train_data.station_number - 1; i++) {
+      new_train_data.arrival[day_num][i + 1] =
+          new_train_data.departure[day_num][i] + std::stoi(travel_time[i]);
 
-      if (i != new_train.value.station_number - 2)
-        new_train.value.departure[day_num][i + 1] =
-            new_train.value.arrival[day_num][i + 1] + std::stoi(stop_time[i]);
+      if (i != new_train_data.station_number - 2)
+        new_train_data.departure[day_num][i + 1] =
+            new_train_data.arrival[day_num][i + 1] + std::stoi(stop_time[i]);
     }
   }
 
   for (int i = 0; i <= end_day_num - start_day_num; i++) {
-    for (int j = 1; j < new_train.value.station_number; i++) {
-      new_train.value.left_ticket[i][j] = new_train.value.totoal_seat;
+    for (int j = 1; j < new_train_data.station_number; j++) {
+      new_train_data.left_ticket[i][j] = new_train_data.totoal_seat;
     }
   }
 
-  new_train.value.is_released = false;
-  new_train.value.type = info["-g"][0];
+  new_train_data.is_released = false;
+  new_train_data.type = info["-g"][0];
 
-  id_train.insert(new_train);
+  int offset = train_data.write(new_train_data);
+  new_train_ref.value = TrainRef{offset};
+  id_train.insert(new_train_ref);
+  delete new_train_ptr;
   return 0;
 }
 
 int TrainManager::delete_train(const std::string &str) {
   sjtu::map<std::string, std::string> info = train_parser(str);
-  BPT<Train>::index_value target_train;
+  BPT<TrainRef>::index_value target_train;
   BPT<route_to_id>::index_value target_route;
   BPT<station_to_id>::index_value target_station;
 
@@ -181,19 +188,22 @@ int TrainManager::delete_train(const std::string &str) {
   std::strcpy(target_train.index, info["-i"].c_str());
 
   // 先找到这个车
-  Train vec[3];
+  TrainRef vec_ref[3];
   int num = 0;
-  id_train.findinterval(id_train.root, target_train, vec, num);
+  id_train.findinterval(id_train.root, target_train, vec_ref, num);
   if (num != 1) { // 如果找到的车的数量不为1
     return -1;
   }
 
-  Train &the_train = vec[1];
+  TrainRef &the_ref = vec_ref[1];
+  Train the_train;
+  train_data.read(the_train, the_ref.offset);
+
   if (the_train.is_released) { // 已发布
     return -1;
   }
 
-  id_train.remove(BPT<Train>::index_value{info["-i"].c_str(), the_train});
+  id_train.remove(BPT<TrainRef>::index_value{info["-i"].c_str(), the_ref});
   for (int i = 0; i < the_train.station_number; i++) { // 起点枚举
     strcpy(target_station.index, the_train.station_name[i]);
     strcpy(target_station.value.station, the_train.station_name[i]);
@@ -212,40 +222,46 @@ int TrainManager::delete_train(const std::string &str) {
 
 int TrainManager::release_train(const std::string &str) {
   sjtu::map<std::string, std::string> info = train_parser(str);
-  BPT<Train>::index_value target_train;
+  BPT<TrainRef>::index_value target_train;
   std::strcpy(target_train.index, info["-i"].c_str());
 
-  Train vec[3];
+  TrainRef vec_ref[3];
   int num = 0;
-  id_train.findinterval(id_train.root, target_train, vec, num);
+  id_train.findinterval(id_train.root, target_train, vec_ref, num);
   if (num != 1) { // 如果找到的数量不为1
     return -1;
   }
 
-  Train &the_train = vec[1];
+  TrainRef &the_ref = vec_ref[1];
+  Train the_train;
+  train_data.read(the_train, the_ref.offset);
+
   if (the_train.is_released) { // 已发布
     return -1;
   }
-  id_train.remove(BPT<Train>::index_value{info["-i"].c_str(), the_train});
+  id_train.remove(BPT<TrainRef>::index_value{info["-i"].c_str(), the_ref});
   the_train.is_released = true;
-  id_train.insert(BPT<Train>::index_value{info["-i"].c_str(), the_train});
+  // train_data.update(the_train, the_ref.offset);
+  id_train.insert(BPT<TrainRef>::index_value{info["-i"].c_str(), the_ref});
   return 0;
 }
 
 int TrainManager::query_train(const std::string &str) {
   sjtu::map<std::string, std::string> info = train_parser(str);
-  BPT<Train>::index_value target_train;
+  BPT<TrainRef>::index_value target_train;
 
   std::strcpy(target_train.index, info["-i"].c_str());
 
-  Train vec[3];
+  TrainRef vec_ref[3];
   int num = 0;
-  id_train.findinterval(id_train.root, target_train, vec, num);
+  id_train.findinterval(id_train.root, target_train, vec_ref, num);
   if (num != 1) { // 如果找到的数量不为1
     return -1;
   }
 
-  Train &cur_train = vec[1];
+  Train cur_train;
+  train_data.read(cur_train, vec_ref[1].offset);
+
   if (!cur_train.is_released) {
     return -1;
   }
@@ -280,13 +296,14 @@ void TrainManager::query_ticket(const std::string &str) {
   sjtu::priority_queue<AvailableTicket, ComparePriceAsc> queue_cost;
   sjtu::priority_queue<AvailableTicket, CompareTimeAsc> queue_time;
   for (int i = 1; i <= route_num; i++) {
-    Train vec[3];
-    BPT<Train>::index_value target_train;
+    TrainRef vec_ref[3];
+    BPT<TrainRef>::index_value target_train;
     strcpy(target_train.index, vec_route[i].id);
     int train_num = 0;
-    id_train.findinterval(id_train.root, target_train, vec, train_num);
+    id_train.findinterval(id_train.root, target_train, vec_ref, train_num);
 
-    Train &cur_train = vec[1];
+    Train cur_train;
+    train_data.read(cur_train, vec_ref[1].offset);
     int start_station_offset = 0;
     int end_station_offset = 0;
 
@@ -331,14 +348,15 @@ void TrainManager::query_ticket(const std::string &str) {
 
   std::cout << std::max(queue_cost.size(), queue_time.size()) << "\n";
   while (!queue_cost.empty() || !queue_time.empty()) {
-    Train vec[3];
-    BPT<Train>::index_value target_train;
+    TrainRef vec_ref[3];
+    BPT<TrainRef>::index_value target_train;
     int train_num = 0;
     if (is_by_cost) {
       strcpy(target_train.index, queue_cost.top().id);
-      id_train.findinterval(id_train.root, target_train, vec, train_num);
+      id_train.findinterval(id_train.root, target_train, vec_ref, train_num);
 
-      Train &cur_train = vec[1];
+      Train cur_train;
+      train_data.read(cur_train, vec_ref[1].offset);
 
       print_ticket(cur_train, queue_cost.top().date_offset, info["-s"],
                    info["-t"], queue_cost.top().start_index,
@@ -346,9 +364,10 @@ void TrainManager::query_ticket(const std::string &str) {
       queue_cost.pop();
     } else {
       strcpy(target_train.index, queue_time.top().id);
-      id_train.findinterval(id_train.root, target_train, vec, train_num);
+      id_train.findinterval(id_train.root, target_train, vec_ref, train_num);
 
-      Train &cur_train = vec[1];
+      Train cur_train;
+      train_data.read(cur_train, vec_ref[1].offset);
 
       print_ticket(cur_train, queue_time.top().date_offset, info["-s"],
                    info["-t"], queue_time.top().start_index,
@@ -384,13 +403,14 @@ int TrainManager::query_transfer(const std::string &str) {
   int cnt = 0;
   for (int i = 1; i <= station_num; i++) {
     // 先读出可能的车次，一次进行判断
-    Train vec[3];
-    BPT<Train>::index_value target_train;
+    TrainRef vec_ref[3];
+    BPT<TrainRef>::index_value target_train;
     strcpy(target_train.index, vec_station[i].id);
     int train_num = 0;
-    id_train.findinterval(id_train.root, target_train, vec, train_num);
+    id_train.findinterval(id_train.root, target_train, vec_ref, train_num);
 
-    Train &cur_train = vec[1];
+    Train cur_train;
+    train_data.read(cur_train, vec_ref[1].offset);
     // 合法性1：不是终点
     if (strcmp(cur_train.station_name[cur_train.station_number - 1],
                start_station_name.c_str()) == 0) {
@@ -431,13 +451,15 @@ int TrainManager::query_transfer(const std::string &str) {
   strcpy(ans.ticket1.id, "");
   for (int i = 1; i <= cnt; i++) {
     // 先对于每一个可能的车次拿出来
-    Train vec_train1[3];
-    BPT<Train>::index_value target_train1;
+    TrainRef vec_train1_ref[3];
+    BPT<TrainRef>::index_value target_train1;
     strcpy(target_train1.index, available_tickets[i].id);
     int train1_num = 0;
-    id_train.findinterval(id_train.root, target_train1, vec_train1, train1_num);
+    id_train.findinterval(id_train.root, target_train1, vec_train1_ref,
+                          train1_num);
 
-    Train &cur_train1 = vec_train1[1];
+    Train cur_train1;
+    train_data.read(cur_train1, vec_train1_ref[1].offset);
     for (int end_station_index = available_tickets[i].start_index + 1;
          end_station_index < cur_train1.station_number; end_station_index++) {
       // 枚举所有train1的可能的终点，即为中转站
@@ -471,16 +493,17 @@ int TrainManager::query_transfer(const std::string &str) {
         if (strcmp(vec_route[j].id, cur_train1.id) == 0) {
           continue;
         }
-        Train vec_train2[3];
-        BPT<Train>::index_value target_train2;
+        TrainRef vec_train2_ref[3];
+        BPT<TrainRef>::index_value target_train2;
 
         strcpy(target_train2.index, vec_route[j].id);
 
         int train2_num = 0;
-        id_train.findinterval(id_train.root, target_train2, vec_train2,
+        id_train.findinterval(id_train.root, target_train2, vec_train2_ref,
                               train2_num);
 
-        Train &cur_train2 = vec_train2[1];
+        Train cur_train2;
+        train_data.read(cur_train2, vec_train2_ref[1].offset);
 
         // 判断这个中转时间是否有这个车，要求时间只能大不能小
         int start2_index = 0, end2_index = 0;
@@ -577,25 +600,30 @@ int TrainManager::query_transfer(const std::string &str) {
   if (strcmp(ans.ticket1.id, "") == 0) {
     return -1;
   }
-  Train final1[3];
+  TrainRef final1_ref[3];
   int final_num1 = 0;
-  BPT<Train>::index_value final_train1;
+  BPT<TrainRef>::index_value final_train1;
   strcpy(final_train1.index, cur.ticket1.id);
-  id_train.findinterval(id_train.root, final_train1, final1, final_num1);
+  id_train.findinterval(id_train.root, final_train1, final1_ref, final_num1);
 
-  Train final2[3];
+  TrainRef final2_ref[3];
   int final_num2 = 0;
-  BPT<Train>::index_value final_train2;
+  BPT<TrainRef>::index_value final_train2;
   strcpy(final_train2.index, cur.ticket2.id);
-  id_train.findinterval(id_train.root, final_train2, final2, final_num2);
+  id_train.findinterval(id_train.root, final_train2, final2_ref, final_num2);
 
-  print_ticket(final1[1], ans.ticket1.date_offset,
-               final1[1].station_name[ans.ticket1.start_index],
-               final1[1].station_name[ans.ticket1.end_index],
+  Train final1;
+  train_data.read(final1, final1_ref[1].offset);
+  Train final2;
+  train_data.read(final2, final2_ref[1].offset);
+
+  print_ticket(final1, ans.ticket1.date_offset,
+               final1.station_name[ans.ticket1.start_index],
+               final1.station_name[ans.ticket1.end_index],
                ans.ticket1.start_index, ans.ticket1.end_index);
-  print_ticket(final2[1], ans.ticket2.date_offset,
-               final2[1].station_name[ans.ticket2.start_index],
-               final2[1].station_name[ans.ticket2.end_index],
+  print_ticket(final2, ans.ticket2.date_offset,
+               final2.station_name[ans.ticket2.start_index],
+               final2.station_name[ans.ticket2.end_index],
                ans.ticket2.start_index, ans.ticket2.end_index);
 
   return 0;
@@ -628,13 +656,14 @@ bool TrainManager::check_ticket_enough(
     int &arrival_time, int &price, int &departure_time_index,
     int &start_station_index, int &end_station_index) {
   // 首先从start_time找到departure_index
-  Train vec[3];
+  TrainRef vec_ref[3];
   int vec_num = 0;
-  BPT<Train>::index_value target_train;
+  BPT<TrainRef>::index_value target_train;
   strcpy(target_train.index, info["-i"].c_str());
-  id_train.findinterval(id_train.root, target_train, vec, vec_num);
+  id_train.findinterval(id_train.root, target_train, vec_ref, vec_num);
 
-  Train &cur_train = vec[1];
+  Train cur_train;
+  train_data.read(cur_train, vec_ref[1].offset);
 
   std::string &departure_station = info["-f"];
   std::string &departure_date = info["-d"];
@@ -673,25 +702,28 @@ void TrainManager::successful_ticket_purchase(const char *id,
                                               const int &departure_day,
                                               const int &start_station,
                                               const int &end_station) {
-  BPT<Train>::index_value target_train;
+  BPT<TrainRef>::index_value target_train;
 
   std::strcpy(target_train.index, id);
 
-  Train vec[3];
+  TrainRef vec_ref[3];
   int num = 0;
-  id_train.findinterval(id_train.root, target_train, vec, num);
+  id_train.findinterval(id_train.root, target_train, vec_ref, num);
   if (num != 1) { // 如果找到的数量不为1
     return;
   }
 
-  Train &cur_train = vec[0];
-  id_train.remove(BPT<Train>::index_value{id, cur_train});
+  TrainRef &cur_ref = vec_ref[0];
+  Train cur_train;
+  train_data.read(cur_train, cur_ref.offset);
+  id_train.remove(BPT<TrainRef>::index_value{id, cur_ref});
 
   for (int i = start_station + 1; i <= end_station; i++) {
     cur_train.left_ticket[departure_day][i] -= ticket_num;
   }
 
-  id_train.insert(BPT<Train>::index_value{id, cur_train});
+  // train_data.update(cur_train, cur_ref.offset);
+  id_train.insert(BPT<TrainRef>::index_value{id, cur_ref});
 }
 
 // 此处refund结束后要处理候补的可能
@@ -700,19 +732,21 @@ void TrainManager::refund_ticket(const char *id, const int &ticket_num,
                                  const int &departure_day,
                                  const std::string &start_station,
                                  const std::string &end_station) {
-  BPT<Train>::index_value target_train;
+  BPT<TrainRef>::index_value target_train;
 
   std::strcpy(target_train.index, id);
 
-  Train vec[3];
+  TrainRef vec_ref[3];
   int num = 0;
-  id_train.findinterval(id_train.root, target_train, vec, num);
+  id_train.findinterval(id_train.root, target_train, vec_ref, num);
   if (num != 1) { // 如果找到的数量不为1
     return;
   }
 
-  Train &cur_train = vec[0];
-  id_train.remove(BPT<Train>::index_value{id, cur_train});
+  TrainRef &cur_ref = vec_ref[0];
+  Train cur_train;
+  train_data.read(cur_train, cur_ref.offset);
+  id_train.remove(BPT<TrainRef>::index_value{id, cur_ref});
 
   int start_station_index = 0;
   int end_station_index = 0;
@@ -730,12 +764,14 @@ void TrainManager::refund_ticket(const char *id, const int &ticket_num,
     cur_train.left_ticket[departure_day][i] += ticket_num;
   }
 
-  id_train.insert(BPT<Train>::index_value{id, cur_train});
+  // train_data.update(cur_train, cur_ref.offset);
+  id_train.insert(BPT<TrainRef>::index_value{id, cur_ref});
 }
 
 void TrainManager::clean(const std::string &str1, const std::string &str2,
-                         const std::string &str3) {
+                         const std::string &str3, const std::string &str4) {
   id_train.clean(str1);
+  train_data.initialise(str4);
   route_id.clean(str2);
   station_id.clean(str3);
 }

@@ -35,6 +35,15 @@ struct Train {
   }
 };
 
+struct TrainRef {
+  int offset;
+
+  bool operator<(const TrainRef &other) const { return offset < other.offset; }
+  bool operator==(const TrainRef &other) const {
+    return offset == other.offset;
+  }
+};
+
 struct route_to_id {
   char route[65];
   char id[21];
@@ -113,7 +122,8 @@ struct CompareTimeAsc {
 };
 
 class TrainManager {
-  BPT<Train> id_train;
+  BPT<TrainRef> id_train;
+  MemoryRiver<Train> train_data;
   BPT<route_to_id> route_id;
   BPT<station_to_id> station_id;
   sjtu::map<std::string, std::string> train_parser(const std::string &);
@@ -130,7 +140,7 @@ class TrainManager {
 
 public:
   TrainManager(const std::string &file_name_1, const std::string &file_name_2,
-               const std::string &file_name_3);
+               const std::string &file_name_3, const std::string &file_name_4);
 
   int add_train(const std::string &);
 
@@ -155,5 +165,6 @@ public:
   bool check_ticket_enough(sjtu::map<std::string, std::string> &, int &, int &,
                            int &, int &, int &, int &);
 
-  void clean(const std::string &, const std::string &, const std::string &);
+  void clean(const std::string &, const std::string &, const std::string &,
+             const std::string &);
 };

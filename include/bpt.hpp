@@ -230,7 +230,15 @@ public:
   int head;
   int root;
 
-  void clean(const std::string &str) { tree_node.initialise(str); }
+  void clean(const std::string &str) {
+    tree_node.initialise(str);
+    Node initial;
+    int address = tree_node.write(initial);
+    root = address;
+    head = address;
+    tree_node.write_info(root, 1);
+    tree_node.write_info(head, 2);
+  }
 
   int get_node_size(const int &pos) {
     Node cur;
@@ -241,16 +249,15 @@ public:
   bool empty() { return (get_node_size(root) == 0); }
 
   void init(const std::string &the_file_name) {
-    std::cerr << "start ifstream\n";
     fstream test;
     test.open(the_file_name, std::ios::binary | std::ios::in);
-    std::cout << "end ifstream\n";
+    // std::cout << "end ifstream\n";
     bool exists = test.good();
     test.close();
     if (!exists) {
-      std::cout << "initialize\n";
+      // std::cout << "initialize\n";
       tree_node.initialise(the_file_name);
-      std::cout << "end initialize\n";
+      // std::cout << "end initialize\n";
       Node initial;
       int address = tree_node.write(initial);
       root = address;
@@ -259,7 +266,7 @@ public:
       tree_node.write_info(head, 2);
       return;
     }
-    std::cout << "created a new file\n";
+    // std::cout << "created a new file\n";
     tree_node.open_existing(the_file_name);
     tree_node.get_info(root, 1);
     tree_node.get_info(head, 2);
