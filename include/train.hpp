@@ -5,7 +5,7 @@
 #include <cstring>
 #include <string>
 
-constexpr int MAXSTATION = 101;
+constexpr int MAXSTATION = 105;
 constexpr int MAXTIME = 144000;
 constexpr int MAXDAY = 100; // 30 + 31 + 31 + 7 = 99
 constexpr int MAXTRAIN = 1e4 + 5;
@@ -16,7 +16,7 @@ struct Train {
   //          所有区间的性质均跟着后方的点
   char id[21];
   int station_number;
-  char station_name[MAXSTATION][31]; // 0 - (MAXSTATION - 1)
+  char station_name[MAXSTATION][35]; // 0 - (MAXSTATION - 1)
   int totoal_seat;
   int left_ticket[MAXDAY][MAXSTATION]; // 1 - (MAXSTATION - 1)
   int price[MAXSTATION]; // 1 - (MAXSTATION - 1) 做成前缀和数组，快速得到区间和
@@ -68,7 +68,7 @@ struct route_to_id {
 };
 
 struct station_to_id {
-  char station[31];
+  char station[35];
   char id[21];
 
   bool operator<(const station_to_id &other) const {

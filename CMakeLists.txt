@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 project(TicketManagementSystem)
 
 # 设置 C++ 标准（根据需要修改，例如 11 或 17）
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 收集 src 目录下所有 .cpp 文件（包括 main.cpp 和其他源文件）

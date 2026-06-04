@@ -2,6 +2,7 @@
 #include "../include/train.hpp"
 #include "../include/user.hpp"
 #include <iostream>
+#include <limits>
 
 const std::string user_file_name = "username_user";
 const std::string train_id_file_name = "id_Train";
@@ -13,10 +14,11 @@ const std::string trainid_time_ticketid_file_name = "pending_list";
 const std::string user_trainid_file_name = "username_trainid";
 const std::string number_of_orders = "order_count";
 
+std::string input;
+std::string oper;
+std::string time_slot;
+
 int main() {
-  std::string input;
-  std::string oper;
-  std::string time_slot;
   auto *usermanager = new UserManager(user_file_name);
   auto *trainmanager =
       new TrainManager(train_id_file_name, route_id_file_name,
@@ -25,7 +27,11 @@ int main() {
       new TicketManager(ticket_id_file_name, trainid_time_ticketid_file_name,
                         user_trainid_file_name, number_of_orders);
   while (std::cin >> time_slot >> oper) {
-    getline(std::cin, input);
+    // std::cout << time_slot << " " << oper << "\n";
+    input.clear();
+    // std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    getline(std::cin, input, '\n');
+    // std::cout << "input = " << input << "\n";
     std::cout << time_slot << " ";
     if (oper == "exit") {
       std::cout << "bye\n";
@@ -56,6 +62,7 @@ int main() {
       }
     } else if (oper == "query_ticket") {
       trainmanager->query_ticket(input);
+      // std::cout << "getout here\n";
     } else if (oper == "query_transfer") {
       if (trainmanager->query_transfer(input) == -1) {
         std::cout << -1 << "\n";
@@ -78,18 +85,16 @@ int main() {
               info, departure_time, arrival_time, total_price,
               departure_time_index, start_station_index, end_station_index)) {
         // ticket中buy
-        total_price *= std::stoi(info["-n"]);
         ticketmanager->buy_ticket(info, departure_time, arrival_time,
                                   total_price, departure_time_index);
         // train中successful_purchase
         trainmanager->successful_ticket_purchase(
             info["-i"].c_str(), std::stoi(info["-n"]), departure_time_index,
             start_station_index, end_station_index);
-        std::cout << total_price << "\n";
+        std::cout << total_price * std::stoi(info["-n"]) << "\n";
       } else {
         if (info.find("-q") != info.end() && info["-q"] == "true") {
           // pending
-          total_price *= std::stoi(info["-n"]);
           ticketmanager->pend_ticket(info, departure_time, arrival_time,
                                      total_price, departure_time_index);
           std::cout << "queue\n";
@@ -126,6 +131,7 @@ int main() {
           departure_time_index, departure_station_name, arrival_station_name);
       if (!is_successful) {
         std::cout << "-1\n";
+        continue;
       }
       if (!is_pending) {
         // realize refund in the train ticket
@@ -133,6 +139,7 @@ int main() {
             cur_train_id.c_str(), ticket_num, departure_time_index,
             departure_station_name, arrival_station_name);
       }
+      std::cout << "0\n";
     } else if (oper == "clean") {
       usermanager->clean(user_file_name);
       trainmanager->clean(train_id_file_name, route_id_file_name,
@@ -142,6 +149,7 @@ int main() {
       std::cout << "0\n";
     }
   }
+  delete usermanager;
   delete trainmanager;
   delete ticketmanager;
   return 0;

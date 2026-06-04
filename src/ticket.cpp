@@ -12,8 +12,9 @@ void TicketManager::print_ticket(const Ticket &cur_ticket) {
   }
   std::cout << cur_ticket.train_id << " " << cur_ticket.start_station << " "
             << get_abs_time(cur_ticket.departure_time) << " -> "
-            << cur_ticket.end_station << " " << cur_ticket.price << " "
-            << cur_ticket.num << '\n';
+            << cur_ticket.end_station << " "
+            << get_abs_time(cur_ticket.arrival_time) << " " << cur_ticket.price
+            << " " << cur_ticket.num << '\n';
 }
 
 void TicketManager::update_total_ticket_id() {
@@ -76,7 +77,7 @@ void TicketManager::buy_ticket(const sjtu::map<std::string, std::string> &info,
   strcpy(cur_ticket.start_station, info["-f"].c_str());
   strcpy(cur_ticket.end_station, info["-t"].c_str());
   cur_ticket.num = std::stoi(info["-n"]);
-  cur_ticket.price = price * cur_ticket.num;
+  cur_ticket.price = price;
   cur_ticket.status = 0;
   total_ticket_num++;
   update_total_ticket_id();
@@ -110,7 +111,7 @@ void TicketManager::refund_ticket(sjtu::map<std::string, std::string> &info,
   BPT<UserToId>::index_value cur_user_to_id;
   strcpy(cur_user_to_id.index, cur_username.c_str());
 
-  UserToId user_to_id_vec[MAXTICKET];
+  UserToId *user_to_id_vec = new UserToId[MAXTICKET];
   int user_to_id_num = 0;
   user_id.findinterval(user_id.root, cur_user_to_id, user_to_id_vec,
                        user_to_id_num);
@@ -123,7 +124,7 @@ void TicketManager::refund_ticket(sjtu::map<std::string, std::string> &info,
   std::string target_ticketid = user_to_id_vec[offset].ticket_id;
   BPT<Ticket>::index_value target_ticket;
   strcpy(target_ticket.index, user_to_id_vec[offset].ticket_id);
-
+  delete[] user_to_id_vec;
   Ticket ticket_vec[3];
   int ticket_num = 0;
   id_ticket.findinterval(id_ticket.root, target_ticket, ticket_vec, ticket_num);
@@ -170,7 +171,7 @@ void TicketManager::query_order(sjtu::map<std::string, std::string> &info) {
   BPT<UserToId>::index_value cur_user_to_id;
   strcpy(cur_user_to_id.index, cur_username.c_str());
 
-  UserToId user_to_id_vec[MAXTICKET];
+  UserToId *user_to_id_vec = new UserToId[MAXTICKET];
   int user_to_id_num = 0;
   user_id.findinterval(user_id.root, cur_user_to_id, user_to_id_vec,
                        user_to_id_num);
@@ -187,6 +188,7 @@ void TicketManager::query_order(sjtu::map<std::string, std::string> &info) {
     Ticket &cur_ticket = ticket_vec[1];
     print_ticket(cur_ticket);
   }
+  delete[] user_to_id_vec;
 }
 
 void TicketManager::pend_ticket(sjtu::map<std::string, std::string> &info,
@@ -211,7 +213,7 @@ void TicketManager::pend_ticket(sjtu::map<std::string, std::string> &info,
   strcpy(cur_ticket.start_station, info["-f"].c_str());
   strcpy(cur_ticket.end_station, info["-t"].c_str());
   cur_ticket.num = std::stoi(info["-n"]);
-  cur_ticket.price = price * cur_ticket.num;
+  cur_ticket.price = price;
   cur_ticket.status = 1;
   strcpy(cur_ticket.ticket_id, std::to_string(total_ticket_num).c_str());
 

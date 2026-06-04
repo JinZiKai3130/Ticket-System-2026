@@ -35,15 +35,15 @@ void TrainManager::parse_string(const std::string &input,
 
 // 这里的number参数表示第几天的train
 void TrainManager::print_train(const Train &cur_train, const int &number) {
-  std::cout << cur_train.id << " " << cur_train.type;
+  std::cout << cur_train.id << " " << cur_train.type << '\n';
   for (int i = 0; i < cur_train.station_number; i++) {
     bool flag = (cur_train.station_number - 1 != i);
     std::cout << cur_train.station_name[i] << " "
               << get_abs_time(cur_train.arrival[number][i]) << " -> "
               << get_abs_time(cur_train.departure[number][i]) << " "
               << cur_train.price[i] << " " // price本身就是前缀和数组
-              << (flag ? "x"
-                       : std::to_string(cur_train.left_ticket[number][i + 1]))
+              << (flag ? std::to_string(cur_train.left_ticket[number][i + 1])
+                       : "x")
               << "\n"; // 这里没有release时应该自动是满票的状态
   }
 }
@@ -55,7 +55,7 @@ void TrainManager::print_ticket(const Train &cur_train, const int &date_offset,
   std::cout << cur_train.id << " " << start_station << " "
             << get_abs_time(cur_train.departure[date_offset][start_index])
             << " -> " << end_station << " "
-            << cur_train.arrival[date_offset][end_index] << " "
+            << get_abs_time(cur_train.arrival[date_offset][end_index]) << " "
             << cur_train.price[end_index] - cur_train.price[start_index] << " ";
   int ticket_num = MAXSEAT;
   for (int i = start_index + 1; i <= end_index; i++) {
@@ -168,7 +168,7 @@ int TrainManager::add_train(const std::string &str) {
   }
 
   new_train_data.is_released = false;
-  new_train_data.type = info["-g"][0];
+  new_train_data.type = info["-y"][0];
 
   int offset = train_data.write(new_train_data);
   new_train_ref.value = TrainRef{offset};
@@ -241,7 +241,7 @@ int TrainManager::release_train(const std::string &str) {
   }
   id_train.remove(BPT<TrainRef>::index_value{info["-i"].c_str(), the_ref});
   the_train.is_released = true;
-  // train_data.update(the_train, the_ref.offset);
+  train_data.update(the_train, the_ref.offset);
   id_train.insert(BPT<TrainRef>::index_value{info["-i"].c_str(), the_ref});
   return 0;
 }
@@ -362,6 +362,7 @@ void TrainManager::query_ticket(const std::string &str) {
                    info["-t"], queue_cost.top().start_index,
                    queue_cost.top().end_index);
       queue_cost.pop();
+      // std::cout << "successful pop\n";
     } else {
       strcpy(target_train.index, queue_time.top().id);
       id_train.findinterval(id_train.root, target_train, vec_ref, train_num);
@@ -649,6 +650,7 @@ int TrainManager::get_departure_index(const Train &cur_train,
       return i;
     }
   }
+  return -1;
 }
 
 bool TrainManager::check_ticket_enough(
@@ -685,7 +687,7 @@ bool TrainManager::check_ticket_enough(
   int requirement_num = std::stoi(info["-n"]);
   price =
       cur_train.price[end_station_index] - cur_train.price[start_station_index];
-  for (int i = start_station_index; i <= end_station_index; i++) {
+  for (int i = start_station_index + 1; i <= end_station_index; i++) {
     if (cur_train.left_ticket[departure_time_index][i] < requirement_num) {
       return 0;
     }
@@ -713,7 +715,7 @@ void TrainManager::successful_ticket_purchase(const char *id,
     return;
   }
 
-  TrainRef &cur_ref = vec_ref[0];
+  TrainRef &cur_ref = vec_ref[1];
   Train cur_train;
   train_data.read(cur_train, cur_ref.offset);
   id_train.remove(BPT<TrainRef>::index_value{id, cur_ref});
@@ -722,7 +724,7 @@ void TrainManager::successful_ticket_purchase(const char *id,
     cur_train.left_ticket[departure_day][i] -= ticket_num;
   }
 
-  // train_data.update(cur_train, cur_ref.offset);
+  train_data.update(cur_train, cur_ref.offset);
   id_train.insert(BPT<TrainRef>::index_value{id, cur_ref});
 }
 
@@ -743,7 +745,7 @@ void TrainManager::refund_ticket(const char *id, const int &ticket_num,
     return;
   }
 
-  TrainRef &cur_ref = vec_ref[0];
+  TrainRef &cur_ref = vec_ref[1];
   Train cur_train;
   train_data.read(cur_train, cur_ref.offset);
   id_train.remove(BPT<TrainRef>::index_value{id, cur_ref});
@@ -764,7 +766,7 @@ void TrainManager::refund_ticket(const char *id, const int &ticket_num,
     cur_train.left_ticket[departure_day][i] += ticket_num;
   }
 
-  // train_data.update(cur_train, cur_ref.offset);
+  train_data.update(cur_train, cur_ref.offset);
   id_train.insert(BPT<TrainRef>::index_value{id, cur_ref});
 }
 
