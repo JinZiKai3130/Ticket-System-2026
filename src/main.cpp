@@ -65,7 +65,7 @@ int main() {
       // std::cout << "getout here\n";
     } else if (oper == "query_transfer") {
       if (trainmanager->query_transfer(input) == -1) {
-        std::cout << -1 << "\n";
+        std::cout << 0 << "\n";
       }
     } else if (oper == "buy_ticket") {
       sjtu::map<std::string, std::string> info;
