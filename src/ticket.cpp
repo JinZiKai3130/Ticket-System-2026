@@ -178,6 +178,7 @@ void TicketManager::query_order(sjtu::map<std::string, std::string> &info) {
   std::cout << user_to_id_num << "\n";
   for (int i = 1; i <= user_to_id_num; i++) {
     std::string target_ticketid = user_to_id_vec[i].ticket_id;
+    // std::cout << target_ticketid << "\n";
     BPT<Ticket>::index_value target_ticket;
     strcpy(target_ticket.index, user_to_id_vec[i].ticket_id);
     Ticket ticket_vec[3];

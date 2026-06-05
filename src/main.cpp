@@ -81,9 +81,10 @@ int main() {
       int total_price = 0;
       int start_station_index = 0;
       int end_station_index = 0;
-      if (trainmanager->check_ticket_enough(
-              info, departure_time, arrival_time, total_price,
-              departure_time_index, start_station_index, end_station_index)) {
+      int flag = trainmanager->check_ticket_enough(
+          info, departure_time, arrival_time, total_price, departure_time_index,
+          start_station_index, end_station_index);
+      if (flag == 1) {
         // ticket中buy
         ticketmanager->buy_ticket(info, departure_time, arrival_time,
                                   total_price, departure_time_index);
@@ -93,7 +94,8 @@ int main() {
             start_station_index, end_station_index);
         std::cout << total_price * std::stoi(info["-n"]) << "\n";
       } else {
-        if (info.find("-q") != info.end() && info["-q"] == "true") {
+        if (flag == 0 && info.find("-q") != info.end() &&
+            info["-q"] == "true") {
           // pending
           ticketmanager->pend_ticket(info, departure_time, arrival_time,
                                      total_price, departure_time_index);

@@ -653,10 +653,11 @@ int TrainManager::get_departure_index(const Train &cur_train,
   return -1;
 }
 
-bool TrainManager::check_ticket_enough(
-    sjtu::map<std::string, std::string> &info, int &departure_time,
-    int &arrival_time, int &price, int &departure_time_index,
-    int &start_station_index, int &end_station_index) {
+int TrainManager::check_ticket_enough(sjtu::map<std::string, std::string> &info,
+                                      int &departure_time, int &arrival_time,
+                                      int &price, int &departure_time_index,
+                                      int &start_station_index,
+                                      int &end_station_index) {
   // 首先从start_time找到departure_index
   TrainRef vec_ref[3];
   int vec_num = 0;
@@ -671,7 +672,10 @@ bool TrainManager::check_ticket_enough(
   std::string &departure_date = info["-d"];
   departure_time_index = get_departure_index(cur_train, departure_station,
                                              departure_date, departure_time);
+  start_station_index = -1;
+  end_station_index = -1;
 
+  // std::cout << "departure_time_index = " << departure_time_index << "\n";
   for (int i = 0; i < cur_train.station_number; i++) {
     if (strcmp(cur_train.station_name[i], departure_station.c_str()) == 0) {
       start_station_index = i;
@@ -679,9 +683,15 @@ bool TrainManager::check_ticket_enough(
     }
     if (strcmp(cur_train.station_name[i], info["-t"].c_str()) == 0) {
       end_station_index = i;
-      break;
+      continue;
     }
   }
+  if (start_station_index == -1 || end_station_index == -1 ||
+      start_station_index >= end_station_index)
+    return -1;
+
+  if (departure_time_index < 0)
+    return -1;
   arrival_time = cur_train.arrival[departure_time_index][end_station_index];
   // 再从departure_index确定这一段station是否有充足的票
   int requirement_num = std::stoi(info["-n"]);

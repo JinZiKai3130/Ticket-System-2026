@@ -52,14 +52,14 @@ struct UserToId {
   bool operator<(const UserToId &other) const {
     if (strcmp(username, other.username) == 0) {
       // 这里按照从后到前的顺序排列，方便直接使用offset寻找
-      return strcmp(ticket_id, other.ticket_id) > 0;
+      return std::stoi(ticket_id) > std::stoi(other.ticket_id);
     }
     return strcmp(username, other.username) < 0;
   }
 
   bool operator==(const UserToId &other) const {
     return strcmp(username, other.username) == 0 &&
-           strcmp(username, other.username) == 0;
+           strcmp(ticket_id, other.ticket_id) == 0;
   }
 };
 

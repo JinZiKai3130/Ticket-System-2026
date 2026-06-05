@@ -6,4 +6,4 @@ cd..
 
 
 g++ -std=c++11 -o filecmp compare.cpp
-./filecmp 1.out 1.ans
+./filecmp 2.out 2.ans

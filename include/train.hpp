@@ -162,8 +162,8 @@ public:
   void refund_ticket(const char *, const int &, const int &,
                      const std::string &, const std::string &);
 
-  bool check_ticket_enough(sjtu::map<std::string, std::string> &, int &, int &,
-                           int &, int &, int &, int &);
+  int check_ticket_enough(sjtu::map<std::string, std::string> &, int &, int &,
+                          int &, int &, int &, int &);
 
   void clean(const std::string &, const std::string &, const std::string &,
              const std::string &);
