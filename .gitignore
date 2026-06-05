@@ -198,3 +198,6 @@ desktop.ini
 # 可以将 secrets.toml, config.local 等加入
 *.secret
 config.local.*
+
+code
+testcases/

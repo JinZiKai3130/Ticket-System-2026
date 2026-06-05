@@ -347,11 +347,11 @@ public:
 
     // 现在还不是叶子节点
     // std::cout << "not leaf now\n";
-    if (target < cur_node.element[1]) {
+    if (strcmp(target.index, cur_node.element[1].index) <= 0) {
       return findinterval(cur_node.child[0], target, vec, num);
     }
     for (int i = 1; i < cur_node.count; i++) {
-      if (cur_node.element[i] <= target && target < cur_node.element[i + 1]) {
+      if (strcmp(target.index, cur_node.element[i + 1].index) <= 0) {
         return findinterval(cur_node.child[i], target, vec, num);
       }
     }

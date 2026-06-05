@@ -18,8 +18,10 @@ void TicketManager::print_ticket(const Ticket &cur_ticket) {
 }
 
 void TicketManager::update_total_ticket_id() {
+  numfilestream.seekp(0, std::ios::beg);
   numfilestream.write(reinterpret_cast<char *>(&total_ticket_num),
                       sizeof(total_ticket_num));
+  numfilestream.flush();
 }
 
 TicketManager::TicketManager(const std::string &file_name1,
@@ -39,12 +41,16 @@ TicketManager::TicketManager(const std::string &file_name1,
     numfilestream.open(file_name4.c_str(),
                        std::ios::in | std::ios::out | std::ios::binary);
     int initValue = 0;
+    numfilestream.seekp(0, std::ios::beg);
     numfilestream.write(reinterpret_cast<const char *>(&initValue),
                         sizeof(initValue));
   }
   int value = 0;
+  numfilestream.seekg(0, std::ios::beg);
   numfilestream.read(reinterpret_cast<char *>(&value), sizeof(value));
   total_ticket_num = value;
+  std::cerr << "DEBUG: read total_ticket_num = " << total_ticket_num
+            << "\n"; // 加这行
   ticket_num_file_name = file_name4;
 }
 
@@ -176,15 +182,32 @@ void TicketManager::query_order(sjtu::map<std::string, std::string> &info) {
   user_id.findinterval(user_id.root, cur_user_to_id, user_to_id_vec,
                        user_to_id_num);
   std::cout << user_to_id_num << "\n";
+
+  // ===== DEBUG: 打印 user_id 返回的 UserToId 的 username =====
+  // std::cerr << "DEBUG query_order for [" << cur_username << "]:\n";
+  // for (int i = 1; i <= user_to_id_num; i++) {
+  //   std::cerr << "  [" << i << "] username=" << user_to_id_vec[i].username
+  //             << " ticket_id=" << user_to_id_vec[i].ticket_id << "\n";
+  // }
+  // =========================================================
+
   for (int i = 1; i <= user_to_id_num; i++) {
     std::string target_ticketid = user_to_id_vec[i].ticket_id;
-    // std::cout << target_ticketid << "\n";
+    // std::cout << target_ticketid <
+    // < "\n";
     BPT<Ticket>::index_value target_ticket;
     strcpy(target_ticket.index, user_to_id_vec[i].ticket_id);
     Ticket ticket_vec[3];
     int ticket_num = 0;
     id_ticket.findinterval(id_ticket.root, target_ticket, ticket_vec,
                            ticket_num);
+
+    // ===== DEBUG: 打印 id_ticket 返回的 Ticket 的 username =====
+    // std::cerr << "    -> id_ticket[" << target_ticketid << "] found "
+    //           << ticket_num << " entries, username=" <<
+    //           ticket_vec[1].username
+    //           << "\n";
+    // ==========================================================
 
     Ticket &cur_ticket = ticket_vec[1];
     print_ticket(cur_ticket);
@@ -237,7 +260,9 @@ void TicketManager::clean(const std::string &str1, const std::string &str2,
   user_id.clean(str3);
 
   int init_value = 0;
+  numfilestream.seekp(0, std::ios::beg);
   numfilestream.write(reinterpret_cast<const char *>(&init_value),
                       sizeof(init_value));
+  numfilestream.flush();
   total_ticket_num = 0;
 }

@@ -3,10 +3,7 @@
 #include <limits>
 
 int main() {
-  std::string s1, s2;
-  std::string input;
-  std::cin >> s1 >> s2;
-  getline(std::cin, input);
-  std::cout << input << "\n";
+  char a[10]{};
+  std::cout << std::stoi(a);
   return 0;
 }
