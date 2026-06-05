@@ -26,8 +26,10 @@ inline int date_to_day_index(const std::string &str) {
     result += 0;
   } else if (month == "07") {
     result += 30;
-  } else {
+  } else if (month == "08") {
     result += 61;
+  } else {
+    result = -60;
   }
 
   result += std::stoi(day);
