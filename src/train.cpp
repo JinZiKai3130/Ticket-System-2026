@@ -33,19 +33,20 @@ void TrainManager::parse_string(const std::string &input,
   }
 }
 
-// 这里的number参数表示第几天的train
 void TrainManager::print_train(const Train &cur_train, const int &number) {
   std::cout << cur_train.id << " " << cur_train.type << '\n';
   for (int i = 0; i < cur_train.station_number; i++) {
     bool flag = (cur_train.station_number - 1 != i);
-    std::cout << cur_train.station_name[i] << " "
-              << get_abs_time(cur_train.arrival[i] + number * DAY_MINUTE)
-              << " -> "
-              << get_abs_time(cur_train.departure[i] + number * DAY_MINUTE)
-              << " " << cur_train.price[i] << " " // price本身就是前缀和数组
+    int arr_time = (i == 0) ? 0 : cur_train.arrival[i] + number * DAY_MINUTE;
+    int dep_time = (i == cur_train.station_number - 1)
+                       ? 0
+                       : cur_train.departure[i] + number * DAY_MINUTE;
+    std::cout << cur_train.station_name[i] << " " << get_abs_time(arr_time)
+              << " -> " << get_abs_time(dep_time) << " " << cur_train.price[i]
+              << " "
               << (flag ? std::to_string(cur_train.left_ticket[number][i + 1])
                        : "x")
-              << "\n"; // 这里没有release时应该自动是满票的状态
+              << "\n";
   }
 }
 
@@ -152,7 +153,6 @@ int TrainManager::add_train(const std::string &str) {
   std::string stop_time[MAXSTATION]{};
   parse_string(info["-o"], stop_time);
 
-  // 只计算 base day 0，实际每天时间 = base + day_offset * DAY_MINUTE
   for (int i = 0; i < new_train_data.station_number - 1; i++) {
     new_train_data.arrival[i + 1] =
         new_train_data.departure[i] + std::stoi(travel_time[i]);
@@ -464,8 +464,6 @@ int TrainManager::query_transfer(const std::string &str) {
     Train cur_train1;
     train_data.read(cur_train1, vec_train1_ref[1].offset);
 
-    // 将 train1 的关键字段提取到轻量缓存（~5KB），避免内层循环反复访问 120KB 的
-    // Train
     TrainCache cache;
     std::strcpy(cache.id, cur_train1.id);
     cache.station_number = cur_train1.station_number;
