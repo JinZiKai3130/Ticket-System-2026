@@ -304,6 +304,11 @@ void TrainManager::query_ticket(const std::string &str) {
 
     Train cur_train;
     train_data.read(cur_train, vec_ref[1].offset);
+
+    if (!cur_train.is_released) {
+      continue;
+    }
+
     int start_station_offset = 0;
     int end_station_offset = 0;
 
