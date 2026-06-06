@@ -281,6 +281,16 @@ void TicketManager::process_pending_refund(const std::string &train_id,
   }
 
   for (int i = 1; i <= pending_num; i++) {
+    for (int j = i + 1; j <= pending_num; j++) {
+      if (std::stoi(pending_vec[i].id) > std::stoi(pending_vec[j].id)) {
+        trainid_time_to_id tmp = pending_vec[i];
+        pending_vec[i] = pending_vec[j];
+        pending_vec[j] = tmp;
+      }
+    }
+  }
+
+  for (int i = 1; i <= pending_num; i++) {
     // 读取候补订单对应的 Ticket
     BPT<Ticket>::index_value target_ticket;
     strcpy(target_ticket.index, pending_vec[i].id);
