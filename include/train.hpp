@@ -5,7 +5,7 @@
 #include <cstring>
 #include <string>
 
-constexpr int MAXSTATION = 105;
+constexpr int MAXSTATION = 55;
 constexpr int MAXTIME = 144000;
 constexpr int MAXDAY = 100; // 30 + 31 + 31 + 7 = 99
 constexpr int MAXTRAIN = 1e4 + 5;
