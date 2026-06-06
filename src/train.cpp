@@ -97,6 +97,9 @@ int TrainManager::add_train(const std::string &str) {
   int num = 0;
   id_train.findinterval(id_train.root, new_train_ref, vec_ref, num);
   if (num != 0) { // 如果id已经存在
+    // if (info["-i"] == "AndIwillmakeaso") {
+    //   std::cerr << "idAndIwillmakeaso found here\n";
+    // }
     return -1;
   }
 
@@ -534,7 +537,7 @@ int TrainManager::query_transfer(const std::string &str) {
         int min_date_index = MAXDAY;
         // 枚举是哪一天第二辆车出发
         for (int k = 0; k <= cur_train2.sale_end - cur_train2.sale_start; k++) {
-          if (cur_train2.departure[k][start2_index] >
+          if (cur_train2.departure[k][start2_index] >=
               cur_train1.arrival[available_tickets[i].date_offset]
                                 [end_station_index]) {
             min_date_index = k;
@@ -705,6 +708,9 @@ int TrainManager::check_ticket_enough(sjtu::map<std::string, std::string> &info,
   arrival_time = cur_train.arrival[departure_time_index][end_station_index];
   // 再从departure_index确定这一段station是否有充足的票
   int requirement_num = std::stoi(info["-n"]);
+  if (requirement_num > cur_train.totoal_seat) {
+    return -1;
+  }
   price =
       cur_train.price[end_station_index] - cur_train.price[start_station_index];
   for (int i = start_station_index + 1; i <= end_station_index; i++) {
@@ -738,6 +744,9 @@ void TrainManager::successful_ticket_purchase(const char *id,
   TrainRef &cur_ref = vec_ref[1];
   Train cur_train;
   train_data.read(cur_train, cur_ref.offset);
+  // if (std::string(cur_train.id) == "AndIwillmakeaso") {
+  //   std::cerr << "total seat = " << cur_train.totoal_seat << "\n";
+  // }
   id_train.remove(BPT<TrainRef>::index_value{id, cur_ref});
 
   for (int i = start_station + 1; i <= end_station; i++) {

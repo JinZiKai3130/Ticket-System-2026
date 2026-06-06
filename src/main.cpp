@@ -27,6 +27,7 @@ int main() {
   auto *ticketmanager =
       new TicketManager(ticket_id_file_name, trainid_time_ticketid_file_name,
                         user_trainid_file_name, number_of_orders);
+  // std::cerr<< "start\n";
   while (std::cin >> time_slot >> oper) {
     // std::cout << time_slot << " " << oper << "\n";
     input.clear();
