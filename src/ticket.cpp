@@ -125,6 +125,7 @@ void TicketManager::refund_ticket(sjtu::map<std::string, std::string> &info,
   if (user_to_id_num < offset) {
     is_successful = 0;
     return;
+    delete[] user_to_id_vec;
   }
 
   // 从ticket_id重新标记对应的票据，标记为refund
