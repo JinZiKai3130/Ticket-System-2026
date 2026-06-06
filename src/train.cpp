@@ -665,8 +665,14 @@ int TrainManager::check_ticket_enough(sjtu::map<std::string, std::string> &info,
   strcpy(target_train.index, info["-i"].c_str());
   id_train.findinterval(id_train.root, target_train, vec_ref, vec_num);
 
+  if (vec_num < 1)
+    return -1;
+
   Train cur_train;
   train_data.read(cur_train, vec_ref[1].offset);
+
+  if (!cur_train.is_released)
+    return -1;
 
   std::string &departure_station = info["-f"];
   std::string &departure_date = info["-d"];
@@ -777,7 +783,40 @@ void TrainManager::refund_ticket(const char *id, const int &ticket_num,
   }
 
   train_data.update(cur_train, cur_ref.offset);
+  // std::cerr << "WROTE_REFUND " << id << " offset=" << cur_ref.offset
+  //           << " day0_seg11=" << cur_train.left_ticket[0][11] << "\n";
   id_train.insert(BPT<TrainRef>::index_value{id, cur_ref});
+}
+
+void TrainManager::write_train_back(const char *id,
+                                    const Train &updated_train) {
+  BPT<TrainRef>::index_value target_train;
+  std::strcpy(target_train.index, id);
+
+  TrainRef vec_ref[3];
+  int num = 0;
+  id_train.findinterval(id_train.root, target_train, vec_ref, num);
+  if (num != 1)
+    return;
+
+  TrainRef &cur_ref = vec_ref[1];
+  id_train.remove(BPT<TrainRef>::index_value{id, cur_ref});
+  train_data.update(const_cast<Train &>(updated_train), cur_ref.offset);
+  id_train.insert(BPT<TrainRef>::index_value{id, cur_ref});
+}
+
+bool TrainManager::get_train_by_id(const char *id, Train &out) {
+  BPT<TrainRef>::index_value target_train;
+  std::strcpy(target_train.index, id);
+
+  TrainRef vec_ref[3];
+  int num = 0;
+  id_train.findinterval(id_train.root, target_train, vec_ref, num);
+  if (num < 1)
+    return false;
+
+  train_data.read(out, vec_ref[1].offset);
+  return true;
 }
 
 void TrainManager::clean(const std::string &str1, const std::string &str2,

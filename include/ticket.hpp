@@ -5,6 +5,7 @@
 #include <cstring>
 #include <fstream>
 
+struct Train;
 constexpr int MAXTICKET = 1E6 + 5;
 
 struct Ticket {
@@ -34,7 +35,7 @@ struct trainid_time_to_id {
   char id[11]{};
   bool operator<(const trainid_time_to_id &other) const {
     if (strcmp(trainid_time, other.trainid_time) == 0) {
-      return strcmp(id, other.id) < 0;
+      return std::stoi(id) > std::stoi(other.id);
     }
     return strcmp(trainid_time, other.trainid_time) < 0;
   }
@@ -94,6 +95,9 @@ public:
 
   void pend_ticket(sjtu::map<std::string, std::string> &, const int &,
                    const int &, const int &, const int &);
+
+  void process_pending_refund(const std::string &train_id, int time_index,
+                              Train &cur_train);
 
   void clean(const std::string &, const std::string &, const std::string &,
              const std::string &);

@@ -19,6 +19,7 @@ std::string oper;
 std::string time_slot;
 
 int main() {
+  // freopen("../my_program_cerr.log", "w", stderr);
   auto *usermanager = new UserManager(user_file_name);
   auto *trainmanager =
       new TrainManager(train_id_file_name, route_id_file_name,
@@ -68,6 +69,8 @@ int main() {
         std::cout << 0 << "\n";
       }
     } else if (oper == "buy_ticket") {
+      // std::cerr << "DEBUG [" << time_slot << "] buy_ticket: " << input <<
+      // "\n";
       sjtu::map<std::string, std::string> info;
       info = ticketmanager->ticket_parser(input);
       int no_use = 0;
@@ -140,6 +143,14 @@ int main() {
         trainmanager->refund_ticket(
             cur_train_id.c_str(), ticket_num, departure_time_index,
             departure_station_name, arrival_station_name);
+        Train updated_train;
+
+        if (trainmanager->get_train_by_id(cur_train_id.c_str(),
+                                          updated_train)) {
+          ticketmanager->process_pending_refund(
+              cur_train_id, departure_time_index, updated_train);
+          trainmanager->write_train_back(cur_train_id.c_str(), updated_train);
+        }
       }
       std::cout << "0\n";
     } else if (oper == "clean") {

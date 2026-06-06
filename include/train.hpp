@@ -165,6 +165,10 @@ public:
   int check_ticket_enough(sjtu::map<std::string, std::string> &, int &, int &,
                           int &, int &, int &, int &);
 
+  void write_train_back(const char *id, const Train &updated_train);
+
+  bool get_train_by_id(const char *id, Train &out);
+
   void clean(const std::string &, const std::string &, const std::string &,
              const std::string &);
 };
