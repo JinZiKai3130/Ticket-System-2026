@@ -6,7 +6,7 @@
 #include <fstream>
 
 struct Train;
-constexpr int MAXTICKET = 1E5 + 5;
+constexpr int MAXTICKET = 1E4 + 5;
 
 struct Ticket {
   char ticket_id[11]{};

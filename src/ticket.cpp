@@ -124,8 +124,8 @@ void TicketManager::refund_ticket(sjtu::map<std::string, std::string> &info,
                        user_to_id_num);
   if (user_to_id_num < offset) {
     is_successful = 0;
-    return;
     delete[] user_to_id_vec;
+    return;
   }
 
   // 从ticket_id重新标记对应的票据，标记为refund
@@ -278,17 +278,6 @@ void TicketManager::process_pending_refund(const std::string &train_id,
   if (pending_num == 0) {
     delete[] pending_vec;
     return;
-  }
-
-  // 应该不需要了
-  for (int i = 1; i <= pending_num; i++) {
-    for (int j = i + 1; j <= pending_num; j++) {
-      if (std::stoi(pending_vec[i].id) > std::stoi(pending_vec[j].id)) {
-        trainid_time_to_id tmp = pending_vec[i];
-        pending_vec[i] = pending_vec[j];
-        pending_vec[j] = tmp;
-      }
-    }
   }
 
   for (int i = 1; i <= pending_num; i++) {
