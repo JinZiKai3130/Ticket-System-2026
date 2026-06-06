@@ -97,7 +97,6 @@ void TicketManager::buy_ticket(const sjtu::map<std::string, std::string> &info,
 
   BPT<UserToId>::index_value cur_user_id;
   strcpy(cur_user_id.index, info["-u"].c_str());
-  strcpy(cur_user_id.value.username, info["-u"].c_str());
   strcpy(cur_user_id.value.ticket_id, std::to_string(total_ticket_num).c_str());
   user_id.insert(cur_user_id);
 }
@@ -233,7 +232,6 @@ void TicketManager::pend_ticket(sjtu::map<std::string, std::string> &info,
   std::string cur_index = cur_trainid + std::to_string(time_index);
   BPT<trainid_time_to_id>::index_value to_be_inserted;
   strcpy(to_be_inserted.index, cur_index.c_str());
-  strcpy(to_be_inserted.value.trainid_time, cur_index.c_str());
   strcpy(to_be_inserted.value.id, std::to_string(++total_ticket_num).c_str());
   update_total_ticket_id();
   trainid_time_id.insert(to_be_inserted);
@@ -258,7 +256,6 @@ void TicketManager::pend_ticket(sjtu::map<std::string, std::string> &info,
 
   BPT<UserToId>::index_value cur_user_id;
   strcpy(cur_user_id.index, info["-u"].c_str());
-  strcpy(cur_user_id.value.username, info["-u"].c_str());
   strcpy(cur_user_id.value.ticket_id, std::to_string(total_ticket_num).c_str());
   user_id.insert(cur_user_id);
 }

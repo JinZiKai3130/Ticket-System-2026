@@ -31,36 +31,35 @@ struct Ticket {
 };
 
 struct trainid_time_to_id {
-  char trainid_time[41]{};
   char id[11]{};
   bool operator<(const trainid_time_to_id &other) const {
-    if (strcmp(trainid_time, other.trainid_time) == 0) {
-      return std::stoi(id) > std::stoi(other.id);
-    }
-    return strcmp(trainid_time, other.trainid_time) < 0;
+    int cur = 0, other_cur;
+    if (id[0] != '\0')
+      cur = std::stoi(id);
+    if (other.id[0] != '\0')
+      other_cur = std::stoi(other.id);
+    return cur > other_cur;
   }
 
   bool operator==(const trainid_time_to_id &other) const {
-    return strcmp(trainid_time, other.trainid_time) == 0 &&
-           strcmp(id, other.id) == 0;
+    return strcmp(id, other.id) == 0;
   }
 };
 
 struct UserToId {
-  char username[21]{};
   char ticket_id[11]{};
 
   bool operator<(const UserToId &other) const {
-    if (strcmp(username, other.username) == 0) {
-      // 这里按照从后到前的顺序排列，方便直接使用offset寻找
-      return std::stoi(ticket_id) > std::stoi(other.ticket_id);
-    }
-    return strcmp(username, other.username) < 0;
+    int cur = 0, other_cur;
+    if (ticket_id[0] != '\0')
+      cur = std::stoi(ticket_id);
+    if (other.ticket_id[0] != '\0')
+      other_cur = std::stoi(other.ticket_id);
+    return cur > other_cur;
   }
 
   bool operator==(const UserToId &other) const {
-    return strcmp(username, other.username) == 0 &&
-           strcmp(ticket_id, other.ticket_id) == 0;
+    return strcmp(ticket_id, other.ticket_id) == 0;
   }
 };
 
