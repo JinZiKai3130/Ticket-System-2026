@@ -24,10 +24,10 @@ struct Train {
   int sale_end;
   bool is_released;
   char type;
-  int arrival[MAXDAY][MAXSTATION];   // 1 - (MAXSTATION -1)
-  int departure[MAXDAY][MAXSTATION]; // 0 - (MAXSTATION - 2)
-  // 第二个量表示出发的站点，具体的下标范围见后方
-  // 第一个量表示距离saledate的日期，以确保是哪一天发车的车次
+  int arrival[MAXSTATION];   // base day 0, 实际 = arrival[i] + day_offset *
+                             // DAY_MINUTE
+  int departure[MAXSTATION]; // base day 0, 实际 = departure[i] + day_offset *
+                             // DAY_MINUTE
 
   bool operator<(const Train &other) const { return strcmp(id, other.id) < 0; }
   bool operator==(const Train &other) const {
@@ -96,9 +96,9 @@ struct AvailableTicket {
   int date_offset;
   int start_index, end_index;
   char id[21];
-  int departure_time;
-  int arrival_time;
-  int ticket_num;
+  int departure_time; // 出发站出发的绝对时间（避免二次读 Train）
+  int arrival_time;   // 到达站到达的绝对时间
+  int ticket_num;     // 该区间最少余票数
 };
 
 struct TransferTicket {
@@ -107,13 +107,15 @@ struct TransferTicket {
   int total_time;
 };
 
+// query_transfer 中用于缓存 train1 关键字段的轻量结构体（~5KB vs Train 的
+// ~120KB） 只提取内层循环会用到的字段，大幅提升 cache 命中率
 struct TrainCache {
   char id[21];
   int station_number;
   char station_name[MAXSTATION][35];
-  int price[MAXSTATION];
-  int arrival[MAXSTATION];
-  int departure[MAXSTATION];
+  int price[MAXSTATION];     // 前缀和，price[end]-price[start] 得到区间票价
+  int arrival[MAXSTATION];   // 仅缓存出发日期对应那一天的到达时间
+  int departure[MAXSTATION]; // 仅缓存出发日期对应那一天的出发时间
 };
 
 struct ComparePriceAsc {

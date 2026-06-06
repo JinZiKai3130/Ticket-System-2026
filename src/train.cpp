@@ -39,9 +39,10 @@ void TrainManager::print_train(const Train &cur_train, const int &number) {
   for (int i = 0; i < cur_train.station_number; i++) {
     bool flag = (cur_train.station_number - 1 != i);
     std::cout << cur_train.station_name[i] << " "
-              << get_abs_time(cur_train.arrival[number][i]) << " -> "
-              << get_abs_time(cur_train.departure[number][i]) << " "
-              << cur_train.price[i] << " " // price本身就是前缀和数组
+              << get_abs_time(cur_train.arrival[i] + number * DAY_MINUTE)
+              << " -> "
+              << get_abs_time(cur_train.departure[i] + number * DAY_MINUTE)
+              << " " << cur_train.price[i] << " " // price本身就是前缀和数组
               << (flag ? std::to_string(cur_train.left_ticket[number][i + 1])
                        : "x")
               << "\n"; // 这里没有release时应该自动是满票的状态
@@ -53,10 +54,13 @@ void TrainManager::print_ticket(const Train &cur_train, const int &date_offset,
                                 const std::string &end_station,
                                 const int &start_index, const int &end_index) {
   std::cout << cur_train.id << " " << start_station << " "
-            << get_abs_time(cur_train.departure[date_offset][start_index])
+            << get_abs_time(cur_train.departure[start_index] +
+                            date_offset * DAY_MINUTE)
             << " -> " << end_station << " "
-            << get_abs_time(cur_train.arrival[date_offset][end_index]) << " "
-            << cur_train.price[end_index] - cur_train.price[start_index] << " ";
+            << get_abs_time(cur_train.arrival[end_index] +
+                            date_offset * DAY_MINUTE)
+            << " " << cur_train.price[end_index] - cur_train.price[start_index]
+            << " ";
   int ticket_num = MAXSEAT;
   for (int i = start_index + 1; i <= end_index; i++) {
     ticket_num = std::min(ticket_num, cur_train.left_ticket[date_offset][i]);
@@ -140,7 +144,7 @@ int TrainManager::add_train(const std::string &str) {
   std::string end_day = info["-d"].substr(6, 5);
   int &start_day_num = new_train_data.sale_start = date_to_day_index(start_day);
   int &end_day_num = new_train_data.sale_end = date_to_day_index(end_day);
-  new_train_data.departure[0][0] =
+  new_train_data.departure[0] =
       time_to_int(info["-x"]) + start_day_num * DAY_MINUTE;
 
   std::string travel_time[MAXSTATION]{};
@@ -148,20 +152,14 @@ int TrainManager::add_train(const std::string &str) {
   std::string stop_time[MAXSTATION]{};
   parse_string(info["-o"], stop_time);
 
-  // 这里的i对应parser出来的下标
-  for (int day_num = 0; day_num <= end_day_num - start_day_num; day_num++) {
-    // 每日的初始化
-    new_train_data.departure[day_num][0] =
-        new_train_data.departure[0][0] + day_num * DAY_MINUTE;
+  // 只计算 base day 0，实际每天时间 = base + day_offset * DAY_MINUTE
+  for (int i = 0; i < new_train_data.station_number - 1; i++) {
+    new_train_data.arrival[i + 1] =
+        new_train_data.departure[i] + std::stoi(travel_time[i]);
 
-    for (int i = 0; i < new_train_data.station_number - 1; i++) {
-      new_train_data.arrival[day_num][i + 1] =
-          new_train_data.departure[day_num][i] + std::stoi(travel_time[i]);
-
-      if (i != new_train_data.station_number - 2)
-        new_train_data.departure[day_num][i + 1] =
-            new_train_data.arrival[day_num][i + 1] + std::stoi(stop_time[i]);
-    }
+    if (i != new_train_data.station_number - 2)
+      new_train_data.departure[i + 1] =
+          new_train_data.arrival[i + 1] + std::stoi(stop_time[i]);
   }
 
   for (int i = 0; i <= end_day_num - start_day_num; i++) {
@@ -324,8 +322,9 @@ void TrainManager::query_ticket(const std::string &str) {
     // 这里确定是否在sale date区域内
     // 对于售票中的每一趟车，都进行一下查找 i.e.枚举始发站发车日期的下标
     for (int j = 0; j <= cur_train.sale_end - cur_train.sale_start; j++) {
-      std::string tmp_string =
-          get_abs_time(cur_train.departure[j][start_station_offset]);
+      int dep_time_check =
+          cur_train.departure[start_station_offset] + j * DAY_MINUTE;
+      std::string tmp_string = get_abs_time(dep_time_check);
       tmp_string.resize(5);
 
       if (strcmp(tmp_string.c_str(), info["-d"].c_str()) == 0) {
@@ -334,14 +333,15 @@ void TrainManager::query_ticket(const std::string &str) {
         strcpy(tmp.id, cur_train.id);
         tmp.price = cur_train.price[end_station_offset] -
                     cur_train.price[start_station_offset];
-        tmp.time = cur_train.arrival[j][end_station_offset] -
-                   cur_train.departure[j][start_station_offset];
+        tmp.time = cur_train.arrival[end_station_offset] -
+                   cur_train.departure[start_station_offset];
         tmp.date_offset = j;
         tmp.start_index = start_station_offset;
         tmp.end_index = end_station_offset;
         // 预先计算 print_ticket 需要的字段，避免输出阶段再次读取 Train
-        tmp.departure_time = cur_train.departure[j][start_station_offset];
-        tmp.arrival_time = cur_train.arrival[j][end_station_offset];
+        tmp.departure_time = dep_time_check;
+        tmp.arrival_time =
+            cur_train.arrival[end_station_offset] + j * DAY_MINUTE;
         tmp.ticket_num = MAXSEAT;
         for (int k = start_station_offset + 1; k <= end_station_offset; k++) {
           if (cur_train.left_ticket[j][k] < tmp.ticket_num)
@@ -433,8 +433,8 @@ int TrainManager::query_transfer(const std::string &str) {
 
     // 判断是否和departure_date相同
     for (int j = 0; j <= cur_train.sale_end - cur_train.sale_start; j++) {
-      std::string abs_time =
-          get_abs_time(cur_train.departure[j][station_offset]);
+      int dep_time_check = cur_train.departure[station_offset] + j * DAY_MINUTE;
+      std::string abs_time = get_abs_time(dep_time_check);
       abs_time.resize(5);
       if (abs_time == departure_date) {
         available_tickets[++cnt].date_offset = j;
@@ -469,13 +469,12 @@ int TrainManager::query_transfer(const std::string &str) {
     TrainCache cache;
     std::strcpy(cache.id, cur_train1.id);
     cache.station_number = cur_train1.station_number;
+    int offset_i = available_tickets[i].date_offset;
     for (int si = 0; si < cur_train1.station_number; ++si) {
       std::strcpy(cache.station_name[si], cur_train1.station_name[si]);
       cache.price[si] = cur_train1.price[si];
-      cache.arrival[si] =
-          cur_train1.arrival[available_tickets[i].date_offset][si];
-      cache.departure[si] =
-          cur_train1.departure[available_tickets[i].date_offset][si];
+      cache.arrival[si] = cur_train1.arrival[si] + offset_i * DAY_MINUTE;
+      cache.departure[si] = cur_train1.departure[si] + offset_i * DAY_MINUTE;
     }
 
     for (int end_station_index = available_tickets[i].start_index + 1;
@@ -542,7 +541,7 @@ int TrainManager::query_transfer(const std::string &str) {
         int min_date_index = MAXDAY;
         // 枚举是哪一天第二辆车出发
         for (int k = 0; k <= cur_train2.sale_end - cur_train2.sale_start; k++) {
-          if (cur_train2.departure[k][start2_index] >=
+          if (cur_train2.departure[start2_index] + k * DAY_MINUTE >=
               cache.arrival[end_station_index]) {
             min_date_index = k;
             break;
@@ -559,10 +558,11 @@ int TrainManager::query_transfer(const std::string &str) {
         strcpy(cur.ticket2.id, cur_train2.id);
         cur.ticket2.price =
             cur_train2.price[end2_index] - cur_train2.price[start2_index];
-        cur.ticket2.time = cur_train2.arrival[min_date_index][end2_index] -
-                           cur_train2.departure[min_date_index][start2_index];
+        cur.ticket2.time =
+            cur_train2.arrival[end2_index] - cur_train2.departure[start2_index];
 
-        cur.total_time = cur_train2.arrival[min_date_index][end2_index] -
+        cur.total_time = cur_train2.arrival[end2_index] +
+                         min_date_index * DAY_MINUTE -
                          cache.departure[available_tickets[i].start_index];
 
         if (strcmp(ans.ticket1.id, "") == 0) {
@@ -653,10 +653,11 @@ int TrainManager::get_departure_index(const Train &cur_train,
   }
 
   for (int i = 0; i <= cur_train.sale_end - cur_train.sale_start; i++) {
-    std::string abs_time = get_abs_time(cur_train.departure[i][station_index]);
+    int dep_time = cur_train.departure[station_index] + i * DAY_MINUTE;
+    std::string abs_time = get_abs_time(dep_time);
     abs_time.resize(5);
     if (departure_date == abs_time) {
-      departure_time = cur_train.departure[i][station_index];
+      departure_time = dep_time;
       return i;
     }
   }
@@ -708,7 +709,8 @@ int TrainManager::check_ticket_enough(sjtu::map<std::string, std::string> &info,
 
   if (departure_time_index < 0)
     return -1;
-  arrival_time = cur_train.arrival[departure_time_index][end_station_index];
+  arrival_time =
+      cur_train.arrival[end_station_index] + departure_time_index * DAY_MINUTE;
   // 再从departure_index确定这一段station是否有充足的票
   int requirement_num = std::stoi(info["-n"]);
   if (requirement_num > cur_train.totoal_seat) {
