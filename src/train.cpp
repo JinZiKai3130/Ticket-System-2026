@@ -242,10 +242,8 @@ int TrainManager::release_train(const std::string &str) {
   if (the_train.is_released) { // 已发布
     return -1;
   }
-  id_train.remove(BPT<TrainRef>::index_value{info["-i"].c_str(), the_ref});
   the_train.is_released = true;
   train_data.update(the_train, the_ref.offset);
-  id_train.insert(BPT<TrainRef>::index_value{info["-i"].c_str(), the_ref});
   return 0;
 }
 
@@ -341,6 +339,14 @@ void TrainManager::query_ticket(const std::string &str) {
         tmp.date_offset = j;
         tmp.start_index = start_station_offset;
         tmp.end_index = end_station_offset;
+        // 预先计算 print_ticket 需要的字段，避免输出阶段再次读取 Train
+        tmp.departure_time = cur_train.departure[j][start_station_offset];
+        tmp.arrival_time = cur_train.arrival[j][end_station_offset];
+        tmp.ticket_num = MAXSEAT;
+        for (int k = start_station_offset + 1; k <= end_station_offset; k++) {
+          if (cur_train.left_ticket[j][k] < tmp.ticket_num)
+            tmp.ticket_num = cur_train.left_ticket[j][k];
+        }
         if (is_by_cost) {
           queue_cost.push(tmp);
         } else {
@@ -353,31 +359,19 @@ void TrainManager::query_ticket(const std::string &str) {
 
   std::cout << std::max(queue_cost.size(), queue_time.size()) << "\n";
   while (!queue_cost.empty() || !queue_time.empty()) {
-    TrainRef vec_ref[3];
-    BPT<TrainRef>::index_value target_train;
-    int train_num = 0;
     if (is_by_cost) {
-      strcpy(target_train.index, queue_cost.top().id);
-      id_train.findinterval(id_train.root, target_train, vec_ref, train_num);
-
-      Train cur_train;
-      train_data.read(cur_train, vec_ref[1].offset);
-
-      print_ticket(cur_train, queue_cost.top().date_offset, info["-s"],
-                   info["-t"], queue_cost.top().start_index,
-                   queue_cost.top().end_index);
+      const AvailableTicket &t = queue_cost.top();
+      std::cout << t.id << " " << info["-s"] << " "
+                << get_abs_time(t.departure_time) << " -> " << info["-t"] << " "
+                << get_abs_time(t.arrival_time) << " " << t.price << " "
+                << t.ticket_num << "\n";
       queue_cost.pop();
-      // std::cout << "successful pop\n";
     } else {
-      strcpy(target_train.index, queue_time.top().id);
-      id_train.findinterval(id_train.root, target_train, vec_ref, train_num);
-
-      Train cur_train;
-      train_data.read(cur_train, vec_ref[1].offset);
-
-      print_ticket(cur_train, queue_time.top().date_offset, info["-s"],
-                   info["-t"], queue_time.top().start_index,
-                   queue_time.top().end_index);
+      const AvailableTicket &t = queue_time.top();
+      std::cout << t.id << " " << info["-s"] << " "
+                << get_abs_time(t.departure_time) << " -> " << info["-t"] << " "
+                << get_abs_time(t.arrival_time) << " " << t.price << " "
+                << t.ticket_num << "\n";
       queue_time.pop();
     }
   }
@@ -469,12 +463,26 @@ int TrainManager::query_transfer(const std::string &str) {
 
     Train cur_train1;
     train_data.read(cur_train1, vec_train1_ref[1].offset);
+
+    // 将 train1 的关键字段提取到轻量缓存（~5KB），避免内层循环反复访问 120KB 的
+    // Train
+    TrainCache cache;
+    std::strcpy(cache.id, cur_train1.id);
+    cache.station_number = cur_train1.station_number;
+    for (int si = 0; si < cur_train1.station_number; ++si) {
+      std::strcpy(cache.station_name[si], cur_train1.station_name[si]);
+      cache.price[si] = cur_train1.price[si];
+      cache.arrival[si] =
+          cur_train1.arrival[available_tickets[i].date_offset][si];
+      cache.departure[si] =
+          cur_train1.departure[available_tickets[i].date_offset][si];
+    }
+
     for (int end_station_index = available_tickets[i].start_index + 1;
-         end_station_index < cur_train1.station_number; end_station_index++) {
+         end_station_index < cache.station_number; end_station_index++) {
       // 枚举所有train1的可能的终点，即为中转站
       std::string route =
-          std::string(cur_train1.station_name[end_station_index]) +
-          end_station_name;
+          std::string(cache.station_name[end_station_index]) + end_station_name;
       BPT<route_to_id>::index_value target_route;
 
       strcpy(target_route.index, route.c_str());
@@ -489,17 +497,14 @@ int TrainManager::query_transfer(const std::string &str) {
 
       cur.ticket1 = available_tickets[i];
       cur.ticket1.end_index = end_station_index;
-      cur.ticket1.price = cur_train1.price[end_station_index] -
-                          cur_train1.price[available_tickets[i].start_index];
-      cur.ticket1.time =
-          cur_train1
-              .arrival[available_tickets[i].date_offset][end_station_index] -
-          cur_train1.departure[available_tickets[i].date_offset]
-                              [available_tickets[i].start_index];
+      cur.ticket1.price = cache.price[end_station_index] -
+                          cache.price[available_tickets[i].start_index];
+      cur.ticket1.time = cache.arrival[end_station_index] -
+                         cache.departure[available_tickets[i].start_index];
 
       for (int j = 1; j <= route_num; j++) {
         // 找到第二段路径对应的车
-        if (strcmp(vec_route[j].id, cur_train1.id) == 0) {
+        if (strcmp(vec_route[j].id, cache.id) == 0) {
           continue;
         }
         TrainRef vec_train2_ref[3];
@@ -522,7 +527,7 @@ int TrainManager::query_transfer(const std::string &str) {
         int start2_index = 0, end2_index = 0;
         for (int k = 0; k < cur_train2.station_number; k++) { // 寻找下标
           if (strcmp(cur_train2.station_name[k],
-                     cur_train1.station_name[end_station_index]) == 0) {
+                     cache.station_name[end_station_index]) == 0) {
             start2_index = k;
             continue;
           }
@@ -538,8 +543,7 @@ int TrainManager::query_transfer(const std::string &str) {
         // 枚举是哪一天第二辆车出发
         for (int k = 0; k <= cur_train2.sale_end - cur_train2.sale_start; k++) {
           if (cur_train2.departure[k][start2_index] >=
-              cur_train1.arrival[available_tickets[i].date_offset]
-                                [end_station_index]) {
+              cache.arrival[end_station_index]) {
             min_date_index = k;
             break;
           }
@@ -559,8 +563,7 @@ int TrainManager::query_transfer(const std::string &str) {
                            cur_train2.departure[min_date_index][start2_index];
 
         cur.total_time = cur_train2.arrival[min_date_index][end2_index] -
-                         cur_train1.departure[available_tickets[i].date_offset]
-                                             [available_tickets[i].start_index];
+                         cache.departure[available_tickets[i].start_index];
 
         if (strcmp(ans.ticket1.id, "") == 0) {
           ans = cur;
@@ -744,17 +747,12 @@ void TrainManager::successful_ticket_purchase(const char *id,
   TrainRef &cur_ref = vec_ref[1];
   Train cur_train;
   train_data.read(cur_train, cur_ref.offset);
-  // if (std::string(cur_train.id) == "AndIwillmakeaso") {
-  //   std::cerr << "total seat = " << cur_train.totoal_seat << "\n";
-  // }
-  id_train.remove(BPT<TrainRef>::index_value{id, cur_ref});
 
   for (int i = start_station + 1; i <= end_station; i++) {
     cur_train.left_ticket[departure_day][i] -= ticket_num;
   }
 
   train_data.update(cur_train, cur_ref.offset);
-  id_train.insert(BPT<TrainRef>::index_value{id, cur_ref});
 }
 
 // 此处refund结束后要处理候补的可能
@@ -777,7 +775,6 @@ void TrainManager::refund_ticket(const char *id, const int &ticket_num,
   TrainRef &cur_ref = vec_ref[1];
   Train cur_train;
   train_data.read(cur_train, cur_ref.offset);
-  id_train.remove(BPT<TrainRef>::index_value{id, cur_ref});
 
   int start_station_index = 0;
   int end_station_index = 0;
@@ -796,9 +793,6 @@ void TrainManager::refund_ticket(const char *id, const int &ticket_num,
   }
 
   train_data.update(cur_train, cur_ref.offset);
-  // std::cerr << "WROTE_REFUND " << id << " offset=" << cur_ref.offset
-  //           << " day0_seg11=" << cur_train.left_ticket[0][11] << "\n";
-  id_train.insert(BPT<TrainRef>::index_value{id, cur_ref});
 }
 
 void TrainManager::write_train_back(const char *id,
@@ -813,9 +807,7 @@ void TrainManager::write_train_back(const char *id,
     return;
 
   TrainRef &cur_ref = vec_ref[1];
-  id_train.remove(BPT<TrainRef>::index_value{id, cur_ref});
   train_data.update(const_cast<Train &>(updated_train), cur_ref.offset);
-  id_train.insert(BPT<TrainRef>::index_value{id, cur_ref});
 }
 
 bool TrainManager::get_train_by_id(const char *id, Train &out) {

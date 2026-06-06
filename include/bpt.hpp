@@ -81,6 +81,7 @@ private:
   fstream file;
   std::string file_name;
   int sizeofT = sizeof(T);
+  bool opened = false;
 
 public:
   MemoryRiver() = default;
@@ -90,6 +91,7 @@ public:
   ~MemoryRiver() {
     if (file.is_open())
       file.close();
+    opened = false;
   }
 
   // 初始化为新文件（覆盖原内容）
@@ -103,6 +105,7 @@ public:
     for (int i = 0; i < info_len; ++i)
       file.write(reinterpret_cast<const char *>(&tmp), sizeof(int));
     file.close();
+    opened = false;
   }
 
   void open_existing(const std::string &FN) {
@@ -110,19 +113,20 @@ public:
     if (file.is_open())
       file.close();
     file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
+    opened = true;
   }
 
   void ensure_open() {
+    if (opened)
+      return;
+    file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
     if (!file.is_open()) {
+      file.clear();
+      file.open(file_name, std::ios::out | std::ios::binary | std::ios::trunc);
+      file.close();
       file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
-      if (!file.is_open()) {
-        file.clear();
-        file.open(file_name,
-                  std::ios::out | std::ios::binary | std::ios::trunc);
-        file.close();
-        file.open(file_name, std::ios::in | std::ios::out | std::ios::binary);
-      }
     }
+    opened = true;
   }
 
   // 读出第n个int的值赋给tmp，1_base

@@ -96,12 +96,24 @@ struct AvailableTicket {
   int date_offset;
   int start_index, end_index;
   char id[21];
+  int departure_time;
+  int arrival_time;
+  int ticket_num;
 };
 
 struct TransferTicket {
   AvailableTicket ticket1;
   AvailableTicket ticket2;
   int total_time;
+};
+
+struct TrainCache {
+  char id[21];
+  int station_number;
+  char station_name[MAXSTATION][35];
+  int price[MAXSTATION];
+  int arrival[MAXSTATION];
+  int departure[MAXSTATION];
 };
 
 struct ComparePriceAsc {
