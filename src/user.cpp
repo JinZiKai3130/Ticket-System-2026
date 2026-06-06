@@ -268,7 +268,7 @@ int UserManager::modify_profile(const std::string &oper) {
   }
 
   User &cur_user = user_stack[offset];
-  User vec[3];
+  User vec[3], usercpy;
   BPT<User>::index_value target;
   strcpy(target.index, info["-u"].c_str());
   int num = 0;
@@ -276,6 +276,7 @@ int UserManager::modify_profile(const std::string &oper) {
   if (num != 1) { // 不存在这个用户
     return -1;
   }
+  usercpy = vec[1];
   if (cur_user.username == info["-u"] ||
       cur_user.privilege > vec[1].privilege) { // 有编辑的权限
     user_info.remove(BPT<User>::index_value(vec[1].username, vec[1]));
@@ -289,7 +290,12 @@ int UserManager::modify_profile(const std::string &oper) {
       strcpy(vec[1].mail, info["-m"].c_str());
     }
     if (privilege != info.end()) {
-      vec[1].privilege = std::stoi(info["-g"]);
+      int new_priv = std::stoi(info["-g"]);
+      if (!check_privilege(info["-g"]) || cur_user.privilege <= new_priv) {
+        user_info.insert(BPT<User>::index_value(usercpy.username, usercpy));
+        return -1;
+      }
+      vec[1].privilege = new_priv;
     }
     print_user(&vec[1]);
     user_info.insert(BPT<User>::index_value(vec[1].username, vec[1]));

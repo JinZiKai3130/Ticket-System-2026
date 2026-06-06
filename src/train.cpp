@@ -555,6 +555,10 @@ int TrainManager::query_transfer(const std::string &str) {
         cur.ticket2.time = cur_train2.arrival[min_date_index][end2_index] -
                            cur_train2.departure[min_date_index][start2_index];
 
+        cur.total_time = cur_train2.arrival[min_date_index][end2_index] -
+                         cur_train1.departure[available_tickets[i].date_offset]
+                                             [available_tickets[i].start_index];
+
         if (strcmp(ans.ticket1.id, "") == 0) {
           ans = cur;
         } else if (is_by_cost) {
@@ -563,11 +567,9 @@ int TrainManager::query_transfer(const std::string &str) {
             ans = cur;
           } else if (cur.ticket1.price + cur.ticket2.price ==
                      ans.ticket1.price + ans.ticket2.price) {
-            if (cur.ticket1.time + cur.ticket2.time <
-                ans.ticket1.time + ans.ticket2.time) {
+            if (cur.total_time < ans.total_time) {
               ans = cur;
-            } else if (cur.ticket1.time + cur.ticket2.time ==
-                       ans.ticket1.time + ans.ticket2.time) {
+            } else if (cur.total_time == ans.total_time) {
               if (strcmp(cur.ticket1.id, ans.ticket1.id) < 0) {
                 ans = cur;
               } else if (strcmp(cur.ticket1.id, ans.ticket1.id) == 0) {
@@ -578,11 +580,9 @@ int TrainManager::query_transfer(const std::string &str) {
             }
           }
         } else {
-          if (cur.ticket1.time + cur.ticket2.time <
-              ans.ticket1.time + ans.ticket2.time) {
+          if (cur.total_time < ans.total_time) {
             ans = cur;
-          } else if (cur.ticket1.time + cur.ticket2.time ==
-                     ans.ticket1.time + ans.ticket2.time) {
+          } else if (cur.total_time == ans.total_time) {
             if (cur.ticket1.price + cur.ticket2.price <
                 ans.ticket1.price + ans.ticket2.price) {
               ans = cur;

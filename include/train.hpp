@@ -101,6 +101,7 @@ struct AvailableTicket {
 struct TransferTicket {
   AvailableTicket ticket1;
   AvailableTicket ticket2;
+  int total_time;
 };
 
 struct ComparePriceAsc {
