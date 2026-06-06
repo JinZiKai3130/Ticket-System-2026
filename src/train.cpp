@@ -121,12 +121,10 @@ int TrainManager::add_train(const std::string &str) {
   for (int i = 0; i < new_train_data.station_number; i++) { // 起点枚举
     std::strcpy(new_train_data.station_name[i], parsed_station_name[i].c_str());
     std::strcpy(new_station.index, parsed_station_name[i].c_str());
-    std::strcpy(new_station.value.station, parsed_station_name[i].c_str());
     for (int j = i + 1; j < new_train_data.station_number; j++) { // 终点枚举
       // 保证起点在前，终点在后
       std::string the_route = parsed_station_name[i] + parsed_station_name[j];
       std::strcpy(new_route.index, the_route.c_str());
-      std::strcpy(new_route.value.route, the_route.c_str());
       route_id.insert(new_route);
     }
     station_id.insert(new_station);
@@ -207,13 +205,11 @@ int TrainManager::delete_train(const std::string &str) {
   id_train.remove(BPT<TrainRef>::index_value{info["-i"].c_str(), the_ref});
   for (int i = 0; i < the_train.station_number; i++) { // 起点枚举
     strcpy(target_station.index, the_train.station_name[i]);
-    strcpy(target_station.value.station, the_train.station_name[i]);
     for (int j = i + 1; j < the_train.station_number; j++) { // 终点枚举
       // 保证起点在前，终点在后
       std::string the_route = std::string(the_train.station_name[i]) +
                               std::string(the_train.station_name[j]);
       strcpy(target_route.index, the_route.c_str());
-      strcpy(target_route.value.route, the_route.c_str());
       route_id.remove(target_route);
     }
     station_id.remove(target_station);

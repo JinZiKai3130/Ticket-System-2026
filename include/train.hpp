@@ -45,47 +45,37 @@ struct TrainRef {
 };
 
 struct route_to_id {
-  char route[65];
-  char id[21];
+  char id[21]{};
 
   bool operator<(const route_to_id &other) const {
-    if (strcmp(route, other.route) == 0) {
-      return strcmp(id, other.id) < 0;
-    }
-    return strcmp(route, other.route) < 0;
+    return strcmp(id, other.id) < 0;
   }
 
   bool operator==(const route_to_id &other) const {
-    return strcmp(route, other.route) == 0 && strcmp(id, other.id) == 0;
+    return strcmp(id, other.id) == 0;
   }
 
   route_to_id() = default;
 
   route_to_id(const std::string &r, const std::string &train_id) {
-    strcpy(route, r.c_str());
     strcpy(id, train_id.c_str());
   }
 };
 
 struct station_to_id {
-  char station[35];
-  char id[21];
+  char id[21]{};
 
   bool operator<(const station_to_id &other) const {
-    if (strcmp(station, other.station) == 0) {
-      return strcmp(id, other.id) < 0;
-    }
-    return strcmp(station, other.station) < 0;
+    return strcmp(id, other.id) < 0;
   }
 
   bool operator==(const station_to_id &other) const {
-    return strcmp(station, other.station) == 0 && strcmp(id, other.id) == 0;
+    return strcmp(id, other.id) == 0;
   }
 
   station_to_id() = default;
 
   station_to_id(const std::string &st, const std::string &train_id) {
-    strcpy(station, st.c_str());
     strcpy(id, train_id.c_str());
   }
 };
