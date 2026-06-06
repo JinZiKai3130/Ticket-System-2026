@@ -60,7 +60,7 @@ cd "$testdir"
 for i in $list; do
   outfile="$(tmp)"
   echo "About to run input #$i..."
-  time "$exe" < "$basedir/$i.in" > "$outfile" 2>"$cwd/cerr_$i.log"
+  time "$exe" < "$basedir/$i.in" > "$outfile"
   difffile="$(tmp)"
   if diff -ZB "$outfile" "$basedir/$i.out" > "$difffile"; then true; else
     cat "$difffile" | head -5

@@ -262,9 +262,6 @@ int TrainManager::query_train(const std::string &str) {
   Train cur_train;
   train_data.read(cur_train, vec_ref[1].offset);
 
-  if (!cur_train.is_released) {
-    return -1;
-  }
   std::string &query_date = info["-d"];
   int date_index = date_to_day_index(query_date);
   if (date_index < cur_train.sale_start || date_index > cur_train.sale_end) {
