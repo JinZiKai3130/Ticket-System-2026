@@ -417,6 +417,9 @@ int TrainManager::query_transfer(const std::string &str) {
 
     Train cur_train;
     train_data.read(cur_train, vec_ref[1].offset);
+    if (!cur_train.is_released) {
+      continue;
+    }
     // 合法性1：不是终点
     if (strcmp(cur_train.station_name[cur_train.station_number - 1],
                start_station_name.c_str()) == 0) {
@@ -511,6 +514,10 @@ int TrainManager::query_transfer(const std::string &str) {
         Train cur_train2;
         train_data.read(cur_train2, vec_train2_ref[1].offset);
 
+        if (!cur_train2.is_released) {
+          continue;
+        }
+
         // 判断这个中转时间是否有这个车，要求时间只能大不能小
         int start2_index = 0, end2_index = 0;
         for (int k = 0; k < cur_train2.station_number; k++) { // 寻找下标
@@ -524,22 +531,15 @@ int TrainManager::query_transfer(const std::string &str) {
             break;
           }
         }
+        if (start2_index >= end2_index) {
+          continue;
+        }
         int min_date_index = MAXDAY;
         // 枚举是哪一天第二辆车出发
         for (int k = 0; k <= cur_train2.sale_end - cur_train2.sale_start; k++) {
           if (cur_train2.departure[k][start2_index] >
               cur_train1.arrival[available_tickets[i].date_offset]
                                 [end_station_index]) {
-            // 此处应该还需要检查是否有票（ticket是否为0
-            bool flag = false;
-            for (int ptr = start2_index + 1; ptr <= end2_index; ptr++) {
-              if (cur_train2.left_ticket[k][ptr] == 0) {
-                flag = true;
-              }
-            }
-            if (flag) {
-              continue;
-            }
             min_date_index = k;
             break;
           }
@@ -555,10 +555,12 @@ int TrainManager::query_transfer(const std::string &str) {
         strcpy(cur.ticket2.id, cur_train2.id);
         cur.ticket2.price =
             cur_train2.price[end2_index] - cur_train2.price[start2_index];
-        cur.ticket2.time = cur_train2.departure[min_date_index][end2_index] -
-                           cur_train2.arrival[min_date_index][start2_index];
+        cur.ticket2.time = cur_train2.arrival[min_date_index][end2_index] -
+                           cur_train2.departure[min_date_index][start2_index];
 
-        if (is_by_cost) {
+        if (strcmp(ans.ticket1.id, "") == 0) {
+          ans = cur;
+        } else if (is_by_cost) {
           if (cur.ticket1.price + cur.ticket2.price <
               ans.ticket1.price + ans.ticket2.price) {
             ans = cur;
@@ -609,13 +611,13 @@ int TrainManager::query_transfer(const std::string &str) {
   TrainRef final1_ref[3];
   int final_num1 = 0;
   BPT<TrainRef>::index_value final_train1;
-  strcpy(final_train1.index, cur.ticket1.id);
+  strcpy(final_train1.index, ans.ticket1.id);
   id_train.findinterval(id_train.root, final_train1, final1_ref, final_num1);
 
   TrainRef final2_ref[3];
   int final_num2 = 0;
   BPT<TrainRef>::index_value final_train2;
-  strcpy(final_train2.index, cur.ticket2.id);
+  strcpy(final_train2.index, ans.ticket2.id);
   id_train.findinterval(id_train.root, final_train2, final2_ref, final_num2);
 
   Train final1;
