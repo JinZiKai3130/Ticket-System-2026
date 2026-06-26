@@ -97,8 +97,6 @@ struct TransferTicket {
   int total_time;
 };
 
-// query_transfer 中用于缓存 train1 关键字段的轻量结构体（~5KB vs Train 的
-// ~120KB） 只提取内层循环会用到的字段，大幅提升 cache 命中率
 struct TrainCache {
   char id[21];
   int station_number;

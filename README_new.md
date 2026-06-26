@@ -204,7 +204,7 @@ flowchart TD
     Buy[buy_ticket -q true] --> Check{余票充足?}
     Check -->|是| Success[购票成功 扣减余票]
     Check -->|否| Pending[加入候补队列 pending_list]
-    Refund[refund_ticket] --> Inc[恢复余票]
+    Refund[refund_ticket] --> Inc[根据是否是pending决定是否恢复余票]
     Inc --> Process[遍历候补队列]
     Process --> CheckP{能满足订单?}
     CheckP -->|是| Convert[候补转成功 状态 1→0]

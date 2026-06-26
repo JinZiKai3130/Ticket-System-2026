@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚂 火车票管理系统</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <div class="app-container">
+
+        <!-- ========== 侧边栏 ========== -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>🚂 火车票管理</h1>
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text" id="statusText">检查中...</span>
+                </div>
+            </div>
+
+            <nav class="nav-section">
+                <h3>👤 用户管理</h3>
+                <button class="nav-btn" data-panel="add_user">注册用户</button>
+                <button class="nav-btn" data-panel="login">登录</button>
+                <button class="nav-btn" data-panel="logout">登出</button>
+                <button class="nav-btn" data-panel="query_profile">查询用户</button>
+                <button class="nav-btn" data-panel="modify_profile">修改用户</button>
+            </nav>
+
+            <nav class="nav-section">
+                <h3>🚆 车次管理</h3>
+                <button class="nav-btn" data-panel="add_train">添加车次</button>
+                <button class="nav-btn" data-panel="delete_train">删除车次</button>
+                <button class="nav-btn" data-panel="release_train">发布车次</button>
+                <button class="nav-btn" data-panel="query_train">查询车次</button>
+            </nav>
+
+            <nav class="nav-section">
+                <h3>🎫 车票业务</h3>
+                <button class="nav-btn" data-panel="query_ticket">查询车票</button>
+                <button class="nav-btn" data-panel="query_transfer">查询换乘</button>
+                <button class="nav-btn" data-panel="buy_ticket">购买车票</button>
+                <button class="nav-btn" data-panel="query_order">查询订单</button>
+                <button class="nav-btn" data-panel="refund_ticket">退票</button>
+            </nav>
+
+            <nav class="nav-section">
+                <h3>⚙️ 系统</h3>
+                <button class="nav-btn" data-panel="clean">清除数据</button>
+                <button class="nav-btn restart-btn" id="restartBackend">重启后端</button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <p>CS1951 课程大作业</p>
+            </div>
+        </aside>
+
+        <!-- ========== 主内容区 ========== -->
+        <main class="main-content">
+            <div class="panel-container">
+
+                <!-- 欢迎面板 -->
+                <div class="panel active" id="panel-welcome">
+                    <h2>👋 欢迎使用火车票管理系统</h2>
+                    <p>请从左侧菜单选择功能</p>
+                    <div class="quick-actions">
+                        <h3>⚡ 快速操作</h3>
+                        <div class="action-cards">
+                            <div class="action-card" onclick="switchPanel('query_ticket')">
+                                <span class="action-icon">🎫</span>
+                                <span>查询车票</span>
+                            </div>
+                            <div class="action-card" onclick="switchPanel('buy_ticket')">
+                                <span class="action-icon">🛒</span>
+                                <span>购买车票</span>
+                            </div>
+                            <div class="action-card" onclick="switchPanel('query_order')">
+                                <span class="action-icon">📋</span>
+                                <span>我的订单</span>
+                            </div>
+                            <div class="action-card" onclick="switchPanel('login')">
+                                <span class="action-icon">🔑</span>
+                                <span>登录</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ========== 功能面板 ========== -->
+
+                <!-- add_user -->
+                <div class="panel" id="panel-add_user">
+                    <h2>👤 注册用户</h2>
+                    <form class="api-form" data-api="/api/add_user">
+                        <label><input type="checkbox" id="add_user_first" onchange="toggleFirstUser()">
+                            首个用户注册（无需指定权限）</label>
+                        <div id="add_user_c">
+                            <label>当前用户名 (-c): <input type="text" name="c" placeholder="admin"></label>
+                        </div>
+                        <label>新用户名 (-u): <input type="text" name="u" placeholder="new_user" required></label>
+                        <label>密码 (-p): <input type="password" name="p" placeholder="password" required></label>
+                        <label>真实姓名 (-n): <input type="text" name="n" placeholder="张三" required></label>
+                        <label>邮箱 (-m): <input type="email" name="m" placeholder="user@example.com" required></label>
+                        <div id="add_user_g">
+                            <label>权限级别 (-g): <input type="number" name="g" placeholder="0~10" min="0" max="10"></label>
+                        </div>
+                        <button type="submit">注册</button>
+                    </form>
+                </div>
+
+                <!-- login -->
+                <div class="panel" id="panel-login">
+                    <h2>🔑 登录</h2>
+                    <form class="api-form" data-api="/api/login">
+                        <label>用户名 (-u): <input type="text" name="u" placeholder="username" required></label>
+                        <label>密码 (-p): <input type="password" name="p" placeholder="password" required></label>
+                        <button type="submit">登录</button>
+                    </form>
+                </div>
+
+                <!-- logout -->
+                <div class="panel" id="panel-logout">
+                    <h2>🚪 登出</h2>
+                    <form class="api-form" data-api="/api/logout">
+                        <label>用户名 (-u): <input type="text" name="u" placeholder="username" required></label>
+                        <button type="submit">登出</button>
+                    </form>
+                </div>
+
+                <!-- query_profile -->
+                <div class="panel" id="panel-query_profile">
+                    <h2>🔍 查询用户信息</h2>
+                    <form class="api-form" data-api="/api/query_profile">
+                        <label>当前用户 (-c): <input type="text" name="c" placeholder="admin" required></label>
+                        <label>被查询用户 (-u): <input type="text" name="u" placeholder="target_user" required></label>
+                        <button type="submit">查询</button>
+                    </form>
+                </div>
+
+                <!-- modify_profile -->
+                <div class="panel" id="panel-modify_profile">
+                    <h2>✏️ 修改用户信息</h2>
+                    <form class="api-form" data-api="/api/modify_profile">
+                        <label>当前用户 (-c): <input type="text" name="c" placeholder="admin" required></label>
+                        <label>目标用户 (-u): <input type="text" name="u" placeholder="target_user" required></label>
+                        <label>新密码 (-p) <i>(可选)</i>: <input type="password" name="p" placeholder="留空不修改"></label>
+                        <label>新姓名 (-n) <i>(可选)</i>: <input type="text" name="n" placeholder="留空不修改"></label>
+                        <label>新邮箱 (-m) <i>(可选)</i>: <input type="email" name="m" placeholder="留空不修改"></label>
+                        <label>新权限 (-g) <i>(可选)</i>: <input type="number" name="g" placeholder="留空不修改" min="0"
+                                max="10"></label>
+                        <button type="submit">修改</button>
+                    </form>
+                </div>
+
+                <!-- add_train -->
+                <div class="panel" id="panel-add_train">
+                    <h2>🚆 添加车次</h2>
+                    <form class="api-form" data-api="/api/add_train">
+                        <label>车次ID (-i): <input type="text" name="i" placeholder="G1234" required></label>
+                        <label>车站数 (-n): <input type="number" name="n" placeholder="3" min="2" max="100"
+                                required></label>
+                        <label>座位数 (-m): <input type="number" name="m" placeholder="1000" required></label>
+                        <label>车站列表 (-s) <small>用 | 分隔</small>: <input type="text" name="s" placeholder="北京|上海|广州"
+                                required></label>
+                        <label>票价列表 (-p) <small>用 | 分隔</small>: <input type="text" name="p" placeholder="100|200"
+                                required></label>
+                        <label>发车时间 (-x): <input type="text" name="x" placeholder="08:00" required></label>
+                        <label>行驶时间 (-t) <small>分钟，| 分隔</small>: <input type="text" name="t" placeholder="120|180"
+                                required></label>
+                        <label>停留时间 (-o) <small>分钟，| 分隔（两站则填 _）</small>: <input type="text" name="o"
+                                placeholder="30 或 _" required></label>
+                        <label>售卖日期 (-d) <small>用 | 分隔</small>: <input type="text" name="d" placeholder="06-01|08-31"
+                                required></label>
+                        <label>类型 (-y): <input type="text" name="y" placeholder="G" maxlength="1" required></label>
+                        <button type="submit">添加</button>
+                    </form>
+                </div>
+
+                <!-- delete_train -->
+                <div class="panel" id="panel-delete_train">
+                    <h2>🗑️ 删除车次</h2>
+                    <form class="api-form" data-api="/api/delete_train">
+                        <label>车次ID (-i): <input type="text" name="i" placeholder="G1234" required></label>
+                        <button type="submit" class="btn-danger">删除</button>
+                    </form>
+                </div>
+
+                <!-- release_train -->
+                <div class="panel" id="panel-release_train">
+                    <h2>📢 发布车次</h2>
+                    <form class="api-form" data-api="/api/release_train">
+                        <label>车次ID (-i): <input type="text" name="i" placeholder="G1234" required></label>
+                        <button type="submit">发布</button>
+                    </form>
+                </div>
+
+                <!-- query_train -->
+                <div class="panel" id="panel-query_train">
+                    <h2>🔍 查询车次详情</h2>
+                    <form class="api-form" data-api="/api/query_train" data-multi="true">
+                        <label>车次ID (-i): <input type="text" name="i" placeholder="G1234" required></label>
+                        <label>日期 (-d): <input type="text" name="d" placeholder="07-01" required></label>
+                        <button type="submit">查询</button>
+                    </form>
+                </div>
+
+                <!-- query_ticket -->
+                <div class="panel" id="panel-query_ticket">
+                    <h2>🎫 查询车票</h2>
+                    <form class="api-form" data-api="/api/query_ticket" data-multi="true">
+                        <label>出发站 (-s): <input type="text" name="s" placeholder="北京" required></label>
+                        <label>到达站 (-t): <input type="text" name="t" placeholder="上海" required></label>
+                        <label>日期 (-d): <input type="text" name="d" placeholder="07-01" required></label>
+                        <label>排序方式 (-p):
+                            <select name="p">
+                                <option value="time">按时间</option>
+                                <option value="cost">按票价</option>
+                            </select>
+                        </label>
+                        <button type="submit">查询</button>
+                    </form>
+                </div>
+
+                <!-- query_transfer -->
+                <div class="panel" id="panel-query_transfer">
+                    <h2>🔄 查询换乘</h2>
+                    <form class="api-form" data-api="/api/query_transfer" data-multi="true">
+                        <label>出发站 (-s): <input type="text" name="s" placeholder="北京" required></label>
+                        <label>到达站 (-t): <input type="text" name="t" placeholder="广州" required></label>
+                        <label>日期 (-d): <input type="text" name="d" placeholder="07-01" required></label>
+                        <label>排序方式 (-p):
+                            <select name="p">
+                                <option value="time">按时间</option>
+                                <option value="cost">按票价</option>
+                            </select>
+                        </label>
+                        <button type="submit">查询换乘</button>
+                    </form>
+                </div>
+
+                <!-- buy_ticket -->
+                <div class="panel" id="panel-buy_ticket">
+                    <h2>🛒 购买车票</h2>
+                    <form class="api-form" data-api="/api/buy_ticket">
+                        <label>用户名 (-u): <input type="text" name="u" placeholder="username" required></label>
+                        <label>车次ID (-i): <input type="text" name="i" placeholder="G1234" required></label>
+                        <label>日期 (-d): <input type="text" name="d" placeholder="08-17" required></label>
+                        <label>购票张数 (-n): <input type="number" name="n" placeholder="1" min="1" required></label>
+                        <label>出发站 (-f): <input type="text" name="f" placeholder="北京" required></label>
+                        <label>到达站 (-t) <small style="color:#999;">注意：与 query_ticket 不同！</small>: <input type="text"
+                                name="t" placeholder="上海" required></label>
+                        <label>候补购票 (-q):
+                            <select name="q">
+                                <option value="false">否</option>
+                                <option value="true">是（余票不足时加入候补）</option>
+                            </select>
+                        </label>
+                        <button type="submit">购买</button>
+                    </form>
+                </div>
+
+                <!-- query_order -->
+                <div class="panel" id="panel-query_order">
+                    <h2>📋 查询订单</h2>
+                    <form class="api-form" data-api="/api/query_order" data-multi="true">
+                        <label>用户名 (-u): <input type="text" name="u" placeholder="username" required></label>
+                        <button type="submit">查询订单</button>
+                    </form>
+                </div>
+
+                <!-- refund_ticket -->
+                <div class="panel" id="panel-refund_ticket">
+                    <h2>💰 退票</h2>
+                    <form class="api-form" data-api="/api/refund_ticket">
+                        <label>用户名 (-u): <input type="text" name="u" placeholder="username" required></label>
+                        <label>订单序号 (-n) <small>1-based，从新到旧</small>: <input type="number" name="n" placeholder="1"
+                                value="1" min="1"></label>
+                        <button type="submit" class="btn-danger">退票</button>
+                    </form>
+                </div>
+
+                <!-- clean -->
+                <div class="panel" id="panel-clean">
+                    <h2>⚠️ 清除所有数据</h2>
+                    <p class="warning-text">此操作将清除所有用户、车次、订单数据，不可恢复！</p>
+                    <form class="api-form" data-api="/api/clean">
+                        <button type="submit" class="btn-danger">确认清除</button>
+                    </form>
+                </div>
+
+                <!-- ========== 结果输出区 ========== -->
+                <div class="result-section" id="resultSection">
+                    <h3>📤 执行结果</h3>
+                    <pre id="resultOutput">等待操作...</pre>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
